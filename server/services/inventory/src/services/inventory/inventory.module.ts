@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { DashboardController } from './controllers/dashboard.controller';
-import { InventoryAuthGuard } from './controllers/inventory-auth.guard';
+import { InventoryAuthGuard } from './guards/inventory-auth.guard';
 import { IssuesController } from './controllers/issues.controller';
 import { LookupsController } from './controllers/lookups.controller';
 import { LotsController } from './controllers/lots.controller';

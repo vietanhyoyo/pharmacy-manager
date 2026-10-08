@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toast } from '@/components/ui/toast';
 import { changePassword } from '@/lib/api/auth.api';
 
 function PasswordField({ label, ...inputProps }: { label: string } & import('react').ComponentProps<typeof Input>) {
@@ -14,20 +15,29 @@ function PasswordField({ label, ...inputProps }: { label: string } & import('rea
 export function PasswordDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (value: boolean) => void }) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
-    setError('');
     try {
       await changePassword({ currentPassword, newPassword });
       setCurrentPassword('');
       setNewPassword('');
+      toast.add({
+        type: 'success',
+        title: 'Đổi mật khẩu thành công',
+        description: 'Mật khẩu của bạn đã được cập nhật.',
+      });
       onOpenChange(false);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Có lỗi xảy ra');
+      toast.add({
+        type: 'error',
+        title: 'Không thể đổi mật khẩu',
+        description: cause instanceof Error ? cause.message : 'Có lỗi xảy ra',
+        priority: 'high',
+        timeout: 7000,
+      });
     } finally {
       setPending(false);
     }
@@ -40,7 +50,6 @@ export function PasswordDialog({ open, onOpenChange }: { open: boolean; onOpenCh
         <form onSubmit={submit} className="space-y-4">
           <PasswordField label="Mật khẩu hiện tại" type="password" autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} required />
           <PasswordField label="Mật khẩu mới" type="password" autoComplete="new-password" minLength={12} value={newPassword} onChange={event => setNewPassword(event.target.value)} required />
-          {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
           <DialogFooter><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Hủy</Button><Button type="submit" disabled={pending}>{pending ? 'Đang lưu...' : 'Đổi mật khẩu'}</Button></DialogFooter>
         </form>
       </DialogContent>

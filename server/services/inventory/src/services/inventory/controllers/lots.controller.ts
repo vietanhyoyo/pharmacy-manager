@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Post, Put, Req, UseGuards } from '@nestjs
 import { AdminUser } from '../../../shared/contracts/admin-user';
 import { LotRequest } from '../requests';
 import { InventoryService } from '../services/inventory.service';
-import { InventoryAuthGuard } from './inventory-auth.guard';
+import { InventoryAuthGuard } from '../guards/inventory-auth.guard';
 
 type AuthenticatedRequest = { admin: AdminUser };
 

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { toast } from '@/components/ui/toast';
 import { createIssue } from '@/lib/api/issues.api';
 import { createLot, updateLot } from '@/lib/api/lots.api';
 import { createProduct, updateProduct } from '@/lib/api/products.api';
@@ -95,8 +96,26 @@ export function EditorDialog({ editor, onClose, onSaved }: { editor: Editor; onC
         const request: IssueRequest = { reasonCode: form.reasonCode as IssueRequest['reasonCode'], note: form.note, lines: lines.map(line => ({ productId: line.productId, lotId: line.lotId, quantity: Number(line.quantity) })) };
         await createIssue(request);
       } else return;
+      const names: Partial<Record<Section, string>> = {
+        products: 'thuốc', suppliers: 'nhà cung cấp', lots: 'lô hàng',
+        receipts: 'phiếu nhập kho', issues: 'phiếu xuất kho',
+      };
+      const action = item?.id ? 'cập nhật' : ['receipts', 'issues'].includes(editor.section) ? 'tạo' : 'thêm';
+      toast.add({
+        type: 'success',
+        title: 'Thành công',
+        description: `Đã ${action} ${names[editor.section]} thành công.`,
+      });
       onSaved();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Có lỗi xảy ra'); }
+    } catch (cause) {
+      toast.add({
+        type: 'error',
+        title: 'Không thể lưu dữ liệu',
+        description: cause instanceof Error ? cause.message : 'Có lỗi xảy ra',
+        priority: 'high',
+        timeout: 7000,
+      });
+    }
     finally { setPending(false); }
   }
 
