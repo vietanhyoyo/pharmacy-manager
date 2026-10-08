@@ -8,9 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { api } from '@/lib/api';
+import { saveInventoryRecord } from '@/lib/api/inventory.api';
+import type { InventoryWriteRequest, InventoryWriteSection, IssueRequest, LotRequest, ProductRequest, SupplierRequest } from '@/lib/api/req/inventory.req';
+import type { Lot, Product, Supplier } from '@/lib/api/res/inventory.res';
 import { useAdminStore } from '@/lib/store';
-import { Lot, Product, Section, Supplier } from '@/lib/types';
+import type { Section } from '@/lib/types';
 
 type Editor = { section: Section; item?: Product | Lot | Supplier } | null;
 type Line = { productId: string; lotId: string; quantity: string; purchasePrice: string };
@@ -71,15 +73,14 @@ export function EditorDialog({ editor, onClose, onSaved }: { editor: Editor; onC
     }
     setPending(true); setError('');
     try {
-      let body: object;
-      if (editor.section === 'products') body = { sku: form.sku, name: form.name, activeIngredient: form.activeIngredient, strength: form.strength, dosageForm: form.dosageForm, prescriptionType: form.prescriptionType, categoryId: form.categoryId || null, baseUnitId: form.baseUnitId, status: form.status };
-      else if (editor.section === 'suppliers') body = { code: form.code, name: form.name, phone: form.phone, status: form.status };
-      else if (editor.section === 'lots') body = { productId: form.productId, batchNumber: form.batchNumber, manufacturingDate: form.manufacturingDate || null, expiryDate: form.expiryDate, status: form.status };
+      let body: InventoryWriteRequest;
+      if (editor.section === 'products') body = { sku: form.sku, name: form.name, activeIngredient: form.activeIngredient, strength: form.strength, dosageForm: form.dosageForm, prescriptionType: form.prescriptionType as ProductRequest['prescriptionType'], categoryId: form.categoryId || null, baseUnitId: form.baseUnitId, status: form.status as ProductRequest['status'] };
+      else if (editor.section === 'suppliers') body = { code: form.code, name: form.name, phone: form.phone, status: form.status as SupplierRequest['status'] };
+      else if (editor.section === 'lots') body = { productId: form.productId, batchNumber: form.batchNumber, manufacturingDate: form.manufacturingDate || null, expiryDate: form.expiryDate, status: form.status as LotRequest['status'] };
       else if (editor.section === 'receipts') body = { supplierId: form.supplierId, lines: lines.map(line => ({ productId: line.productId, lotId: line.lotId, quantity: Number(line.quantity), purchasePrice: Number(line.purchasePrice) })) };
-      else if (editor.section === 'issues') body = { reasonCode: form.reasonCode, note: form.note, lines: lines.map(line => ({ productId: line.productId, lotId: line.lotId, quantity: Number(line.quantity) })) };
+      else if (editor.section === 'issues') body = { reasonCode: form.reasonCode as IssueRequest['reasonCode'], note: form.note, lines: lines.map(line => ({ productId: line.productId, lotId: line.lotId, quantity: Number(line.quantity) })) };
       else return;
-      const path = `admin/${editor.section}${item ? `/${item.id}` : ''}`;
-      await api(path, { method: item ? 'PUT' : 'POST', body: JSON.stringify(body) });
+      await saveInventoryRecord(editor.section as InventoryWriteSection, body, item?.id);
       onSaved();
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Có lỗi xảy ra'); }
     finally { setPending(false); }
@@ -146,18 +147,4 @@ export function EditorDialog({ editor, onClose, onSaved }: { editor: Editor; onC
       </form>}
     </DialogContent>
   </Dialog>;
-}
-
-export function PasswordDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (value: boolean) => void }) {
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [error, setError] = useState('');
-  const [pending, setPending] = useState(false);
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setPending(true); setError('');
-    try { await api('auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) }); setCurrentPassword(''); setNewPassword(''); onOpenChange(false); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Có lỗi xảy ra'); }
-    finally { setPending(false); }
-  }
-  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent><DialogHeader><DialogTitle>Đổi mật khẩu</DialogTitle><DialogDescription>Mật khẩu mới cần có ít nhất 12 ký tự.</DialogDescription></DialogHeader><form onSubmit={submit} className="space-y-4"><Field label="Mật khẩu hiện tại"><Input type="password" autoComplete="current-password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required /></Field><Field label="Mật khẩu mới"><Input type="password" autoComplete="new-password" minLength={12} value={newPassword} onChange={e => setNewPassword(e.target.value)} required /></Field>{error && <p role="alert" className="text-sm text-red-700">{error}</p>}<DialogFooter><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Hủy</Button><Button type="submit" disabled={pending}>{pending ? 'Đang lưu...' : 'Đổi mật khẩu'}</Button></DialogFooter></form></DialogContent></Dialog>;
 }

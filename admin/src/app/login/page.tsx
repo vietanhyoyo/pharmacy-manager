@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { login as loginAdmin } from '@/lib/api/auth.api';
 import { useAdminStore } from '@/lib/store';
 
 export default function LoginPage() {
@@ -21,10 +22,8 @@ export default function LoginPage() {
     event.preventDefault();
     setPending(true); setError('');
     try {
-      const response = await fetch('/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username, password }) });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Đăng nhập thất bại');
-      setUser(data.user);
+      const admin = await loginAdmin({ username, password });
+      setUser(admin);
       router.replace('/');
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Có lỗi xảy ra'); }
     finally { setPending(false); }

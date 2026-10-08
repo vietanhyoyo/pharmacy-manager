@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { AdminUser } from '../auth/auth.service';
+import { AdminUser } from '../../auth/auth.service';
 
 @Injectable()
 export class InventoryRepository {

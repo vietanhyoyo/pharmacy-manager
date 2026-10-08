@@ -1,12 +1,2 @@
 export const sections = ['dashboard', 'products', 'lots', 'stock', 'receipts', 'issues', 'suppliers', 'movements'] as const;
 export type Section = typeof sections[number];
-export type User = { id: string; organizationId: string; username: string; fullName: string };
-export type Product = { id: string; sku: string; name: string; activeIngredient: string | null; strength: string | null; dosageForm: string | null; prescriptionType: string; categoryId: string | null; categoryName: string | null; baseUnitId: string; unitName: string; status: string; quantity: string };
-export type Supplier = { id: string; code: string; name: string; phone: string | null; status: string };
-export type Lot = { id: string; productId: string; productName: string; sku: string; batchNumber: string; manufacturingDate: string | null; expiryDate: string | null; status: string; quantity: string };
-export type Stock = { productId: string; sku: string; productName: string; lotId: string; batchNumber: string; expiryDate: string | null; warehouseName: string; onHandQty: string; reservedQty: string; availableQty: string };
-export type Receipt = { id: string; receiptNumber: string; receivedAt: string; status: string; supplierName: string; lineCount: number; totalQuantity: string; totalAmount: string };
-export type Issue = { id: string; issueNumber: string; issuedAt: string; reasonCode: string; status: string; lineCount: number; totalQuantity: string };
-export type Movement = { id: string; ledgerSeq: string; movementType: string; quantityDelta: string; postedAt: string; referenceNo: string; productName: string; batchNumber: string };
-export type Dashboard = { products: number; suppliers: number; lots: number; totalUnits: string; receipts: number; issues: number; lowStock: { id: string; sku: string; name: string; quantity: string }[]; expiring: { id: string; batchNumber: string; expiryDate: string; productName: string; quantity: string }[]; recent: Movement[] };
-export type Lookups = { categories: { id: string; name: string }[]; units: { id: string; code: string; name: string }[]; suppliers: { id: string; code: string; name: string }[]; products: { id: string; sku: string; name: string; productUnitId: string }[]; lots: { id: string; productId: string; batchNumber: string; expiryDate: string }[]; warehouses: { id: string; code: string; name: string }[] };

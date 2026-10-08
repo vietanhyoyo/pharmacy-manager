@@ -1,14 +1,15 @@
 'use client';
 
 import { create } from 'zustand';
-import { api } from './api';
-import { Lookups, User } from './types';
+import { getLookups } from './api/inventory.api';
+import type { AdminUser } from './api/res/auth.res';
+import type { Lookups } from './api/res/inventory.res';
 
 type AdminState = {
-  user: User | null;
+  user: AdminUser | null;
   lookups: Lookups | null;
   revision: number;
-  setUser: (user: User | null) => void;
+  setUser: (user: AdminUser | null) => void;
   loadLookups: () => Promise<void>;
   refresh: () => void;
 };
@@ -18,6 +19,6 @@ export const useAdminStore = create<AdminState>((set) => ({
   lookups: null,
   revision: 0,
   setUser: user => set({ user }),
-  loadLookups: async () => set({ lookups: await api<Lookups>('admin/lookups') }),
+  loadLookups: async () => set({ lookups: await getLookups() }),
   refresh: () => set(state => ({ revision: state.revision + 1 })),
 }));

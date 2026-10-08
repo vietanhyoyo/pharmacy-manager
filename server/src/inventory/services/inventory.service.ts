@@ -1,9 +1,10 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { EntityManager } from 'typeorm';
-import { AdminUser } from '../auth/auth.service';
-import { InventoryRepository } from './inventory.repository';
-import { IssueInput, LotInput, ProductInput, ReceiptInput, SupplierInput } from './inventory.types';
+import { AdminUser } from '../../auth/auth.service';
+import { InventoryRepository } from '../repositories/inventory.repository';
+import { IssueRequest, LotRequest, ProductRequest, ReceiptRequest, SupplierRequest } from '../requests';
+import { IdResponse, IssueCreatedResponse, ReceiptCreatedResponse } from '../responses/inventory.response';
 
 function required(value: unknown, label: string, max = 255): string {
   if (typeof value !== 'string' || !value.trim() || value.trim().length > max) throw new BadRequestException(`${label} không hợp lệ`);
@@ -49,7 +50,7 @@ export class InventoryService {
   issues(user: AdminUser) { return this.repo.issues(user.organizationId); }
   movements(user: AdminUser) { return this.repo.movements(user.organizationId); }
 
-  async createProduct(user: AdminUser, input: ProductInput) {
+  async createProduct(user: AdminUser, input: ProductRequest): Promise<IdResponse> {
     body(input);
     const sku = required(input?.sku, 'Mã thuốc', 64).toUpperCase();
     const name = required(input?.name, 'Tên thuốc');
@@ -68,7 +69,7 @@ export class InventoryService {
     });
   }
 
-  async updateProduct(user: AdminUser, id: string, input: ProductInput) {
+  async updateProduct(user: AdminUser, id: string, input: ProductRequest): Promise<IdResponse> {
     body(input);
     const sku = required(input?.sku, 'Mã thuốc', 64).toUpperCase();
     const name = required(input?.name, 'Tên thuốc');
@@ -87,7 +88,7 @@ export class InventoryService {
     });
   }
 
-  async createSupplier(user: AdminUser, input: SupplierInput) {
+  async createSupplier(user: AdminUser, input: SupplierRequest): Promise<IdResponse> {
     body(input);
     const id = randomUUID();
     try {
@@ -97,7 +98,7 @@ export class InventoryService {
     return { id };
   }
 
-  async updateSupplier(user: AdminUser, id: string, input: SupplierInput) {
+  async updateSupplier(user: AdminUser, id: string, input: SupplierRequest): Promise<IdResponse> {
     body(input);
     const status = input.status ?? 'ACTIVE';
     if (!['ACTIVE', 'INACTIVE'].includes(status)) throw new BadRequestException('Trạng thái không hợp lệ');
@@ -110,7 +111,7 @@ export class InventoryService {
     return { id };
   }
 
-  async createLot(user: AdminUser, input: LotInput) {
+  async createLot(user: AdminUser, input: LotRequest): Promise<IdResponse> {
     body(input);
     const productId = required(input?.productId, 'Thuốc', 36);
     const batchNumber = required(input?.batchNumber, 'Số lô', 128);
@@ -128,7 +129,7 @@ export class InventoryService {
     return { id };
   }
 
-  async updateLot(user: AdminUser, id: string, input: LotInput) {
+  async updateLot(user: AdminUser, id: string, input: LotRequest): Promise<IdResponse> {
     body(input);
     const status = input.status ?? 'ACTIVE';
     if (!['ACTIVE', 'BLOCKED', 'QUARANTINED', 'CLOSED'].includes(status)) throw new BadRequestException('Trạng thái lô không hợp lệ');
@@ -146,7 +147,7 @@ export class InventoryService {
     return { id };
   }
 
-  async receive(user: AdminUser, input: ReceiptInput) {
+  async receive(user: AdminUser, input: ReceiptRequest): Promise<ReceiptCreatedResponse> {
     body(input);
     if (!Array.isArray(input?.lines) || input.lines.length < 1 || input.lines.length > 50) throw new BadRequestException('Phiếu nhập cần từ 1 đến 50 dòng');
     const context = await this.repo.context(user.organizationId);
@@ -181,7 +182,7 @@ export class InventoryService {
     return { id, receiptNumber: number };
   }
 
-  async issue(user: AdminUser, input: IssueInput) {
+  async issue(user: AdminUser, input: IssueRequest): Promise<IssueCreatedResponse> {
     body(input);
     if (!['INTERNAL_USE', 'DAMAGED', 'EXPIRED', 'SAMPLE', 'OTHER'].includes(input?.reasonCode)) throw new BadRequestException('Lý do xuất không hợp lệ');
     if (!Array.isArray(input.lines) || input.lines.length < 1 || input.lines.length > 50) throw new BadRequestException('Phiếu xuất cần từ 1 đến 50 dòng');

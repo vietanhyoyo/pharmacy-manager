@@ -8,7 +8,9 @@ import { Empty as EmptyRoot, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTit
 import { Item, ItemActions, ItemContent, ItemDescription, ItemFooter, ItemGroup, ItemHeader, ItemTitle } from '@/components/ui/item';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Issue, Lot, Movement, Product, Receipt, Section, Stock, Supplier } from '@/lib/types';
+import { StatusBadge } from '@/components/ui/status-badge';
+import type { Issue, Lot, Movement, Product, Receipt, Stock, Supplier } from '@/lib/api/res/inventory.res';
+import type { Section } from '@/lib/types';
 
 export const number = (value: number | string | null | undefined) => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 }).format(Number(value ?? 0));
 export const money = (value: number | string) => `${number(value)} ₫`;
@@ -16,9 +18,7 @@ export const formatDate = (value?: string | null) => value ? new Intl.DateTimeFo
 const isExpiring = (value?: string | null) => !!value && new Date(value).getTime() < Date.now() + 90 * 86400000;
 
 export function Status({ value }: { value: string }) {
-  const labels: Record<string, string> = { ACTIVE: 'Đang hoạt động', INACTIVE: 'Ngừng hoạt động', POSTED: 'Đã ghi sổ', BLOCKED: 'Đã khóa', QUARANTINED: 'Cách ly', CLOSED: 'Đã đóng' };
-  const active = value === 'ACTIVE' || value === 'POSTED';
-  return <Badge variant={active ? 'outline' : 'secondary'} className="gap-1.5 px-2.5 py-1 text-[11px] font-medium"><span className={`size-1.5 rounded-full ${active ? 'bg-foreground' : 'bg-muted-foreground'}`} />{labels[value] || value}</Badge>;
+  return <StatusBadge value={value} />;
 }
 
 export function EmptyState({ text = 'Chưa có dữ liệu' }: { text?: string }) {
