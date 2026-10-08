@@ -2479,3 +2479,65 @@ Agent nên tạo DDL đầy đủ từ field dictionary này và:
 ---
 
 **End of specification.**
+
+---
+
+# 27. Bổ sung sau V1: khuyến mãi theo sản phẩm
+
+V1 chỉ có `promotions` làm header. Migration `PromotionProducts1700000000001` bổ sung `promotion_products` để lưu sản phẩm và mức ưu đãi cụ thể. Một chương trình có nhiều sản phẩm; một sản phẩm có thể thuộc nhiều chương trình.
+
+| Cột | MySQL | Null | Ý nghĩa |
+| --- | --- | --- | --- |
+| id | CHAR(36) | NO | PK UUIDv7 |
+| organization_id | CHAR(36) | NO | Tenant; phải trùng với promotion và product |
+| promotion_id | CHAR(36) | NO | Chương trình khuyến mãi |
+| promotion_type | VARCHAR(32) | NO | Bằng `promotions.promotion_type` |
+| product_id | CHAR(36) | NO | Sản phẩm được khuyến mãi |
+| product_unit_id | CHAR(36) | YES | Đơn vị bán áp dụng; NULL nghĩa là mọi đơn vị bán cho PERCENT/FIXED |
+| minimum_quantity | DECIMAL(20,6) | NO | Số lượng tối thiểu theo đơn vị bán; mặc định 1 |
+| discount_percent | DECIMAL(9,4) | YES | Phần trăm giảm cho PERCENT; lớn hơn 0 và không quá 100 |
+| discount_amount | DECIMAL(19,4) | YES | Số tiền giảm trên mỗi đơn vị bán cho FIXED; lớn hơn 0 |
+| buy_quantity | DECIMAL(20,6) | YES | Số lượng mua cho BUY_X_GET_Y theo `product_unit_id` |
+| get_quantity | DECIMAL(20,6) | YES | Số lượng tặng cho BUY_X_GET_Y theo đơn vị quà |
+| gift_product_id | CHAR(36) | YES | Sản phẩm quà; NULL nghĩa là cùng sản phẩm |
+| gift_product_unit_id | CHAR(36) | YES | Đơn vị quà; NULL nghĩa là cùng đơn vị mua |
+| product_unit_scope_key | CHAR(36) GENERATED | NO | `COALESCE(product_unit_id, zero UUID)` để UNIQUE hoạt động với NULL |
+| created_at, updated_at | DATETIME(6) | NO | UTC |
+
+Ràng buộc:
+
+- `UNIQUE (promotion_id, product_id, product_unit_scope_key)` ngăn trùng rule cùng sản phẩm/đơn vị.
+- FK kết hợp kiểm tra promotion và product cùng `organization_id`, product unit thuộc product, gift unit thuộc gift product, và `promotion_type` trùng header.
+- CHECK đảm bảo đúng nhóm cột cho PERCENT, FIXED hoặc BUY_X_GET_Y. BUY_X_GET_Y phải chỉ rõ `product_unit_id`; khi tặng sản phẩm khác phải chỉ rõ đơn vị quà.
+- `promotions.start_at`, `end_at`, `status` vẫn quyết định thời gian và trạng thái chương trình. Việc tính ưu đãi, chồng khuyến mãi và snapshot discount trên sale line sẽ do POS service thực hiện sau.
+
+---
+
+# 28. Bổ sung sau V1: đặt và bán hàng online
+
+Migration `OnlineOrders1700000000002` thêm các bảng dưới đây; migration `RenameOnlineTables1700000000003` bỏ tiền tố `online_` ở 10 bảng mà vẫn giữ dữ liệu và FK. Các bảng dùng `CHAR(36)` cho ID, `DATETIME(6)` UTC, `DECIMAL` cho tiền và số lượng, có `organization_id` và FK kết hợp để chặn tham chiếu sang tenant khác.
+
+| Bảng | Vai trò |
+| --- | --- |
+| `customer_accounts` | Ánh xạ khách hàng với định danh đăng nhập từ nhà cung cấp xác thực; không lưu mật khẩu thô. |
+| `customer_addresses` | Sổ địa chỉ giao hàng; mỗi khách tối đa một địa chỉ mặc định. |
+| `product_listings` | Sản phẩm được hiển thị trên kênh online, slug, mô tả và khóa ảnh. Giá được đọc từ `price_list_items` khi đặt hàng. |
+| `carts`, `cart_items` | Giỏ hàng đang hoạt động và sản phẩm/đơn vị/số lượng; một khách tối đa một giỏ ACTIVE trong mỗi organization. |
+| `orders`, `order_lines` | Đơn hàng và dòng hàng; lưu snapshot SKU, tên, đơn vị, giá, thuế, giảm giá, số lượng quy đổi, địa chỉ và tổng tiền. `idempotency_key` ngăn tạo đơn trùng khi retry. |
+| `order_discounts` | Chi tiết ưu đãi đã áp dụng, liên kết với `promotions`/`promotion_products` và snapshot số tiền giảm. |
+| `order_prescriptions` | Khóa file đơn thuốc trong kho lưu trữ riêng, dòng hàng liên quan và kết quả dược sĩ duyệt. |
+| `payment_attempts` | Lần thanh toán, mã giao dịch bên cung cấp, trạng thái và hoàn tiền; có khóa chống retry. |
+| `shipments` | Theo dõi một chuyến giao cho mỗi đơn giao hàng. |
+| `order_events` | Lịch sử chuyển trạng thái đơn, người thực hiện và thời điểm. |
+
+## 28.1 Luồng xử lý đề xuất
+
+1. Khách chọn sản phẩm từ `product_listings`, quản lý `carts` và `cart_items`.
+2. Checkout lấy giá hiện hành từ `price_list_items`, khuyến mãi từ `promotion_products`, rồi tạo `orders`, `order_lines`, `order_discounts` cùng snapshot giá/thuế/địa chỉ. Mỗi dòng phải dùng `product_unit_id` thuộc chính sản phẩm.
+3. Dòng cần đơn thuốc có `prescription_required = 1`. Lưu file ngoài DB và khóa file trong `order_prescriptions`; người có quyền xét duyệt cập nhật trạng thái. Service phải kiểm tra kết quả xét duyệt trước khi xác nhận/xuất bán.
+4. Khi giữ hàng, dùng `inventory_reservations` hiện có với `source_type = 'ONLINE_ORDER_LINE'`, `source_id = order_lines.id`. Cập nhật `inventory_balances.reserved_qty` cùng transaction và lock balance như quy tắc tồn kho gốc.
+5. Thanh toán ghi `payment_attempts` và cập nhật `orders.payment_status` theo kết quả. Callback từ cổng thanh toán phải xử lý idempotent.
+6. Khi hoàn tất bán, tạo chứng từ `sales`/`sale_lines`/`sale_line_allocations`, post `inventory_movements`, cập nhật `inventory_balances`, tiêu thụ reservation và gán `orders.sale_id` trong transaction phù hợp. Kho xuất và lô vẫn theo FEFO/expiry rule của V1.
+7. Giao hàng dùng `shipments`; mọi chuyển trạng thái đơn ghi `order_events`. Nếu hủy trước khi xuất bán, release reservation trong cùng transaction.
+
+Schema này lưu dữ liệu cho kênh online. Việc công bố sản phẩm được phép bán, kiểm tra đơn thuốc, tính tiền, điều phối kho, xử lý callback và chuyển trạng thái là trách nhiệm của service/API triển khai sau.

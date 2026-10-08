@@ -223,12 +223,23 @@ for table, columns, _, _, _, _ in parsed:
     entities += ["}", ""]
     (entities_dir / f"{table}.entity.ts").write_text("\n".join(entities))
 
+extensions = []
+for extension_file in sorted(entities_dir.glob("*.entity.ts")):
+    if extension_file.name in entity_files:
+        continue
+    match = re.search(r"^export class (\w+)", extension_file.read_text(), re.M)
+    if match:
+        extensions.append((extension_file.stem.removesuffix(".entity"), match.group(1)))
+
 barrel = ["// Generated from pharmacy_pos_inventory_mysql_spec.md by scripts/generate-schema.py."]
 barrel += [f"import {{ {pascal(table)} }} from './{table}.entity';" for table, *_ in parsed]
+barrel += [f"import {{ {class_name} }} from './{file_name}.entity';" for file_name, class_name in extensions]
 barrel += [""]
 barrel += [f"export {{ {pascal(table)} }} from './{table}.entity';" for table, *_ in parsed]
+barrel += [f"export {{ {class_name} }} from './{file_name}.entity';" for file_name, class_name in extensions]
 barrel += ["", "export const entities = ["]
 barrel += [f"  {pascal(table)}," for table, *_ in parsed]
+barrel += [f"  {class_name}," for _, class_name in extensions]
 barrel += ["] as const;", ""]
 (entities_dir / "index.ts").write_text("\n".join(barrel))
 for stale in entities_dir.glob("*.entity.ts"):

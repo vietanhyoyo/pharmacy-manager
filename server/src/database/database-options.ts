@@ -1,6 +1,11 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { entities } from './entities';
 import { InitialSchema1700000000000 } from './migrations/1700000000000-InitialSchema';
+import { PromotionProducts1700000000001 } from './migrations/1700000000001-PromotionProducts';
+import { OnlineOrders1700000000002 } from './migrations/1700000000002-OnlineOrders';
+import { RenameOnlineTables1700000000003 } from './migrations/1700000000003-RenameOnlineTables';
+import { AdminCredentials1700000000004 } from './migrations/1700000000004-AdminCredentials';
+import { AdminCredentials } from './entities/admin-credentials.entity';
 
 export function databaseOptions(): TypeOrmModuleOptions {
   return {
@@ -12,8 +17,8 @@ export function databaseOptions(): TypeOrmModuleOptions {
     database: process.env.DB_NAME ?? 'pharmacy_manager',
     charset: 'utf8mb4',
     timezone: 'Z',
-    entities: [...entities],
-    migrations: [InitialSchema1700000000000],
+    entities: [...entities, AdminCredentials],
+    migrations: [InitialSchema1700000000000, PromotionProducts1700000000001, OnlineOrders1700000000002, RenameOnlineTables1700000000003, AdminCredentials1700000000004],
     migrationsRun: true,
     synchronize: false,
     logging: ['error'],
