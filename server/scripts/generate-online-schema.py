@@ -4,6 +4,8 @@ Run from repository root:
   python3 server/scripts/generate-online-schema.py
   python3 server/scripts/generate-schema.py  # refresh entity barrel exports
 
+The generated NestJS schema files live under server/services/inventory/src/database.
+
 The 0002 migration records the original deployed table names. Current entity
 names follow the 0003 rename migration; preserve both migration histories.
 """
@@ -15,7 +17,7 @@ import re
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DB_DIR = ROOT / "server/src/database"
+DB_DIR = ROOT / "server/services/inventory/src/database"
 ENTITY_DIR = DB_DIR / "entities"
 MIGRATION = DB_DIR / "migrations/1700000000002-OnlineOrders.ts"
 RENAME_MIGRATION = DB_DIR / "migrations/1700000000003-RenameOnlineTables.ts"

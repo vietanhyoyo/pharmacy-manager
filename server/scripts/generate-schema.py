@@ -1,6 +1,7 @@
 """Generate the initial TypeORM mappings and MySQL migration from the V1 spec.
 
 Run from the repository root: python3 server/scripts/generate-schema.py
+The generated NestJS schema files live under server/services/inventory/src/database.
 Review generated changes before applying them to an existing database.
 """
 
@@ -10,7 +11,7 @@ import re
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = (ROOT / "pharmacy_pos_inventory_mysql_spec.md").read_text()
 SECTION = SPEC.split("# 5. Ma trận quan hệ chính")[0]
-OUT = ROOT / "server/src/database"
+OUT = ROOT / "server/services/inventory/src/database"
 (OUT / "migrations").mkdir(parents=True, exist_ok=True)
 
 TABLES = re.findall(r"^### `([a-z_]+)`\n(.*?)(?=^### `|^## |\Z)", SECTION, re.M | re.S)

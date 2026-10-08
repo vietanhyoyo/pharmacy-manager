@@ -2,6 +2,6 @@ import { apiClient } from './client';
 import type { Movement } from './res/inventory.res';
 
 export async function getMovements(): Promise<Movement[]> {
-  const { data } = await apiClient.get<Movement[]>('/movements');
+  const { data } = await apiClient.get<Movement[]>('/v1/inventory/movements');
   return data;
 }

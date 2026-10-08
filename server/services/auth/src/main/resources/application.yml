@@ -1,0 +1,36 @@
+server:
+  port: ${PORT:8081}
+spring:
+  application:
+    name: pharmacy-auth-service
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:pharmacy_manager}?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC
+    username: ${DB_USER:pharmacy_app}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    consumer:
+      group-id: pharmacy-auth-service
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+app:
+  kafka:
+    auth-topic: pharmacy.auth.requests
+    reply-topic: pharmacy.rpc.responses
+  jwt-secret: ${ADMIN_JWT_SECRET:}
+  seed-demo-data: ${SEED_DEMO_DATA:true}
+  seed-admin-username: ${ADMIN_DEFAULT_USERNAME:admin}
+  seed-admin-password: ${ADMIN_DEFAULT_PASSWORD:admin123456@}

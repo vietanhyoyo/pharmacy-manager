@@ -3,25 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "start": "node dist/main.js",
-    "start:dev": "tsx watch src/main.ts",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
-  },
-  "dependencies": {
-    "@nestjs/common": "^11.1.6",
-    "@nestjs/core": "^11.1.6",
-    "@nestjs/platform-express": "^11.1.6",
-    "@nestjs/typeorm": "^11.0.0",
-    "mysql2": "^3.14.0",
-    "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2",
-    "typeorm": "^0.3.27"
-  },
-  "devDependencies": {
-    "@types/node": "^22.15.0",
-    "tsx": "^4.20.0",
-    "typescript": "^5.8.3"
+    "build": "npm run build:gateway && npm run build:kafka && npm run build:inventory && npm run build:auth",
+    "build:gateway": "node --check services/gateway/src/server.js",
+    "build:kafka": "node --check services/kafka/src/server.js",
+    "build:inventory": "npm --prefix services/inventory run build",
+    "build:auth": "mvn -q -f services/auth/pom.xml -DskipTests package",
+    "typecheck:inventory": "npm --prefix services/inventory run typecheck",
+    "start:gateway": "npm --prefix services/gateway start",
+    "start:kafka": "npm --prefix services/kafka start",
+    "start:inventory": "npm --prefix services/inventory start",
+    "start:auth": "java -jar services/auth/target/auth-service-1.0.0.jar",
+    "db:migrate": "npm --prefix services/inventory run db:migrate",
+    "dev:gateway": "npm --prefix services/gateway run dev",
+    "dev:kafka": "npm --prefix services/kafka run dev",
+    "dev:inventory": "npm --prefix services/inventory run dev",
+    "dev:auth": "mvn -f services/auth/pom.xml spring-boot:run"
   }
 }
-

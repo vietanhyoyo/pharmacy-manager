@@ -3,11 +3,11 @@ import type { ReceiptRequest } from './req/inventory.req';
 import type { Receipt, ReceiptCreatedResponse } from './res/inventory.res';
 
 export async function getReceipts(): Promise<Receipt[]> {
-  const { data } = await apiClient.get<Receipt[]>('/receipts');
+  const { data } = await apiClient.get<Receipt[]>('/v1/inventory/receipts');
   return data;
 }
 
 export async function createReceipt(request: ReceiptRequest): Promise<ReceiptCreatedResponse> {
-  const { data } = await apiClient.post<ReceiptCreatedResponse>('/receipts', request);
+  const { data } = await apiClient.post<ReceiptCreatedResponse>('/v1/inventory/receipts', request);
   return data;
 }

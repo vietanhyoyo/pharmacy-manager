@@ -4,3 +4,6 @@ server/node_modules/
 server/dist/
 admin/node_modules/
 admin/.next/
+**/node_modules/
+**/dist/
+**/target/

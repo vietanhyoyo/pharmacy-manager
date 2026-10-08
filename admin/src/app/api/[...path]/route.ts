@@ -11,8 +11,8 @@ async function proxy(request: NextRequest, { params }: { params: Promise<{ path:
   const { path } = await params;
   if (!path.length || path.some(item => !/^[a-zA-Z0-9_-]+$/.test(item))) return NextResponse.json({ message: 'Đường dẫn không hợp lệ' }, { status: 400 });
   const inventoryPaths = ['dashboard', 'lookups', 'products', 'lots', 'stock', 'receipts', 'issues', 'suppliers', 'movements'];
-  const isInventoryPath = inventoryPaths.includes(path[0]);
-  const isAuthPath = path[0] === 'auth' && ['me', 'change-password'].includes(path[1]) && path.length === 2;
+  const isInventoryPath = path[0] === 'v1' && path[1] === 'inventory' && inventoryPaths.includes(path[2]);
+  const isAuthPath = path[0] === 'v1' && path[1] === 'auth' && ['me', 'change-password'].includes(path[2]) && path.length === 3;
   if (!isInventoryPath && !isAuthPath) {
     return NextResponse.json({ message: 'Đường dẫn không hợp lệ' }, { status: 404 });
   }
