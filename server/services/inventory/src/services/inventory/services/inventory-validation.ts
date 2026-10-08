@@ -25,11 +25,6 @@ export function date(value: unknown, label: string): string {
   if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) throw new BadRequestException(`${label} không hợp lệ`);
   return value;
 }
-export function requireEntity<T>(entity: T | null | undefined, label: string): T {
-  if (!entity) throw new BadRequestException(`${label} không tồn tại hoặc không thuộc hệ thống`);
-  return entity;
-}
-
 export function translateDuplicate(error: unknown, message: string): never {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') throw new ConflictException(message);
   const databaseCode = (error as { meta?: { code?: string } } | null)?.meta?.code;

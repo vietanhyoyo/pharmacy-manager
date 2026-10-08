@@ -12,4 +12,17 @@ export class SuppliersRepository {
       orderBy: { created_at: 'desc' },
     });
   }
+
+  createSupplier(orgId: string, input: { id: string; code: string; name: string; phone: string | null }) {
+    return this.db.suppliers.create({ data: {
+      id: input.id, organization_id: orgId, code: input.code, name: input.name, phone: input.phone,
+    } });
+  }
+
+  async updateSupplier(orgId: string, id: string, input: { code: string; name: string; phone: string | null; status: string }) {
+    return this.db.suppliers.updateMany({
+      where: { id, organization_id: orgId },
+      data: { code: input.code, name: input.name, phone: input.phone, status: input.status },
+    });
+  }
 }
