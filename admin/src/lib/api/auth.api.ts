@@ -8,7 +8,7 @@ export async function login(request: LoginRequest): Promise<AdminUser> {
 }
 
 export async function getCurrentAdmin(): Promise<AdminUser> {
-  const { data } = await apiClient.get<AdminUser>('/backend/auth/me');
+  const { data } = await apiClient.get<AdminUser>('/auth/me');
   return data;
 }
 
@@ -17,5 +17,5 @@ export async function logout(): Promise<void> {
 }
 
 export async function changePassword(request: ChangePasswordRequest): Promise<void> {
-  await apiClient.post('/backend/auth/change-password', request);
+  await apiClient.post('/auth/change-password', request);
 }

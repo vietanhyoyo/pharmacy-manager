@@ -5,7 +5,7 @@ import { IssueCreatedResponse } from '../responses/inventory.response';
 import { InventoryService } from '../services/inventory.service';
 
 @UseGuards(AdminGuard)
-@Controller('admin/issues')
+@Controller('issues')
 export class IssuesController {
   constructor(private readonly inventory: InventoryService) {}
 

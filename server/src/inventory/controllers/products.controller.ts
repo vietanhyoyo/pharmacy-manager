@@ -5,7 +5,7 @@ import { ProductRequest } from '../requests';
 import { InventoryService } from '../services/inventory.service';
 
 @UseGuards(AdminGuard)
-@Controller('admin/products')
+@Controller('products')
 export class ProductsController {
   constructor(private readonly inventory: InventoryService) {}
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { getLookups } from './api/inventory.api';
+import { getLookups } from './api/lookups.api';
 import type { AdminUser } from './api/res/auth.res';
 import type { Lookups } from './api/res/inventory.res';
 

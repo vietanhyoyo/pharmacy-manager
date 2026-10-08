@@ -5,7 +5,7 @@ import { ReceiptCreatedResponse } from '../responses/inventory.response';
 import { InventoryService } from '../services/inventory.service';
 
 @UseGuards(AdminGuard)
-@Controller('admin/receipts')
+@Controller('receipts')
 export class ReceiptsController {
   constructor(private readonly inventory: InventoryService) {}
 

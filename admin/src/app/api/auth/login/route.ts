@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Cần tài khoản và mật khẩu' }, { status: 400 });
   }
   try {
-    const upstream = await fetch(`${process.env.BACKEND_URL ?? 'http://127.0.0.1:3000'}/auth/login`, {
+    const upstream = await fetch(`${process.env.BACKEND_URL ?? 'http://127.0.0.1:3000'}/api/auth/login`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store',
     });
     const data = await upstream.json();

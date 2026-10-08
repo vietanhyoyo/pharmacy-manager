@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { PageError, PageLoading } from '@/components/admin/page-feedback';
 import { PageHeader } from '@/components/admin/page-header';
 import { DashboardView } from './dashboard-view';
-import { getDashboard } from '@/lib/api/inventory.api';
+import { getDashboard } from '@/lib/api/dashboard.api';
 import type { Dashboard } from '@/lib/api/res/inventory.res';
 import { useAdminStore } from '@/lib/store';
 

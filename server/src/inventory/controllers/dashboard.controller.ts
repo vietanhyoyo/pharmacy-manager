@@ -3,7 +3,7 @@ import { AdminGuard, AdminRequest } from '../../auth/admin.guard';
 import { InventoryService } from '../services/inventory.service';
 
 @UseGuards(AdminGuard)
-@Controller('admin')
+@Controller()
 export class DashboardController {
   constructor(private readonly inventory: InventoryService) {}
 

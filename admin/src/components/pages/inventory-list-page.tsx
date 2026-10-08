@@ -10,13 +10,29 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
-import { getInventorySection } from '@/lib/api/inventory.api';
+import { getIssues } from '@/lib/api/issues.api';
+import { getLots } from '@/lib/api/lots.api';
+import { getMovements } from '@/lib/api/movements.api';
+import { getProducts } from '@/lib/api/products.api';
+import { getReceipts } from '@/lib/api/receipts.api';
+import { getStock } from '@/lib/api/stock.api';
+import { getSuppliers } from '@/lib/api/suppliers.api';
 import type { InventoryListResponse, InventoryListSection, Lot, Product, Supplier } from '@/lib/api/res/inventory.res';
 import { pageMetadata } from '@/lib/navigation';
 import { useAdminStore } from '@/lib/store';
 import type { Section } from '@/lib/types';
 
 type EditableItem = Product | Lot | Supplier;
+
+const listLoaders = {
+  products: getProducts,
+  lots: getLots,
+  stock: getStock,
+  receipts: getReceipts,
+  issues: getIssues,
+  suppliers: getSuppliers,
+  movements: getMovements,
+} satisfies Record<InventoryListSection, () => Promise<InventoryListResponse>>;
 
 export function InventoryListPage({ section }: { section: InventoryListSection }) {
   const revision = useAdminStore(state => state.revision);
@@ -31,7 +47,7 @@ export function InventoryListPage({ section }: { section: InventoryListSection }
 
   useEffect(() => {
     let active = true;
-    getInventorySection(section)
+    listLoaders[section]()
       .then(data => { if (active) setLoaded({ key: requestKey, data, error: '' }); })
       .catch(cause => { if (active) setLoaded({ key: requestKey, data: [], error: cause instanceof Error ? cause.message : 'Không tải được dữ liệu' }); });
     return () => { active = false; };

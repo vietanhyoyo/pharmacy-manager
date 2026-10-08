@@ -8,8 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { saveInventoryRecord } from '@/lib/api/inventory.api';
-import type { InventoryWriteRequest, InventoryWriteSection, IssueRequest, LotRequest, ProductRequest, SupplierRequest } from '@/lib/api/req/inventory.req';
+import { createIssue } from '@/lib/api/issues.api';
+import { createLot, updateLot } from '@/lib/api/lots.api';
+import { createProduct, updateProduct } from '@/lib/api/products.api';
+import { createReceipt } from '@/lib/api/receipts.api';
+import { createSupplier, updateSupplier } from '@/lib/api/suppliers.api';
+import type { IssueRequest, LotRequest, ProductRequest, SupplierRequest } from '@/lib/api/req/inventory.req';
 import type { Lot, Product, Supplier } from '@/lib/api/res/inventory.res';
 import { useAdminStore } from '@/lib/store';
 import type { Section } from '@/lib/types';
@@ -73,14 +77,24 @@ export function EditorDialog({ editor, onClose, onSaved }: { editor: Editor; onC
     }
     setPending(true); setError('');
     try {
-      let body: InventoryWriteRequest;
-      if (editor.section === 'products') body = { sku: form.sku, name: form.name, activeIngredient: form.activeIngredient, strength: form.strength, dosageForm: form.dosageForm, prescriptionType: form.prescriptionType as ProductRequest['prescriptionType'], categoryId: form.categoryId || null, baseUnitId: form.baseUnitId, status: form.status as ProductRequest['status'] };
-      else if (editor.section === 'suppliers') body = { code: form.code, name: form.name, phone: form.phone, status: form.status as SupplierRequest['status'] };
-      else if (editor.section === 'lots') body = { productId: form.productId, batchNumber: form.batchNumber, manufacturingDate: form.manufacturingDate || null, expiryDate: form.expiryDate, status: form.status as LotRequest['status'] };
-      else if (editor.section === 'receipts') body = { supplierId: form.supplierId, lines: lines.map(line => ({ productId: line.productId, lotId: line.lotId, quantity: Number(line.quantity), purchasePrice: Number(line.purchasePrice) })) };
-      else if (editor.section === 'issues') body = { reasonCode: form.reasonCode as IssueRequest['reasonCode'], note: form.note, lines: lines.map(line => ({ productId: line.productId, lotId: line.lotId, quantity: Number(line.quantity) })) };
-      else return;
-      await saveInventoryRecord(editor.section as InventoryWriteSection, body, item?.id);
+      if (editor.section === 'products') {
+        const request: ProductRequest = { sku: form.sku, name: form.name, activeIngredient: form.activeIngredient, strength: form.strength, dosageForm: form.dosageForm, prescriptionType: form.prescriptionType as ProductRequest['prescriptionType'], categoryId: form.categoryId || null, baseUnitId: form.baseUnitId, status: form.status as ProductRequest['status'] };
+        if (item?.id) await updateProduct(item.id, request);
+        else await createProduct(request);
+      } else if (editor.section === 'suppliers') {
+        const request: SupplierRequest = { code: form.code, name: form.name, phone: form.phone, status: form.status as SupplierRequest['status'] };
+        if (item?.id) await updateSupplier(item.id, request);
+        else await createSupplier(request);
+      } else if (editor.section === 'lots') {
+        const request: LotRequest = { productId: form.productId, batchNumber: form.batchNumber, manufacturingDate: form.manufacturingDate || null, expiryDate: form.expiryDate, status: form.status as LotRequest['status'] };
+        if (item?.id) await updateLot(item.id, request);
+        else await createLot(request);
+      } else if (editor.section === 'receipts') {
+        await createReceipt({ supplierId: form.supplierId, lines: lines.map(line => ({ productId: line.productId, lotId: line.lotId, quantity: Number(line.quantity), purchasePrice: Number(line.purchasePrice) })) });
+      } else if (editor.section === 'issues') {
+        const request: IssueRequest = { reasonCode: form.reasonCode as IssueRequest['reasonCode'], note: form.note, lines: lines.map(line => ({ productId: line.productId, lotId: line.lotId, quantity: Number(line.quantity) })) };
+        await createIssue(request);
+      } else return;
       onSaved();
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Có lỗi xảy ra'); }
     finally { setPending(false); }

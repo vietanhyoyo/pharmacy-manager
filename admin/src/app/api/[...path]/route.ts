@@ -10,11 +10,15 @@ async function proxy(request: NextRequest, { params }: { params: Promise<{ path:
   }
   const { path } = await params;
   if (!path.length || path.some(item => !/^[a-zA-Z0-9_-]+$/.test(item))) return NextResponse.json({ message: 'Đường dẫn không hợp lệ' }, { status: 400 });
-  if (path[0] !== 'admin' && !(path[0] === 'auth' && ['me', 'change-password'].includes(path[1]) && path.length === 2)) {
+  const inventoryPaths = ['dashboard', 'lookups', 'products', 'lots', 'stock', 'receipts', 'issues', 'suppliers', 'movements'];
+  const isInventoryPath = inventoryPaths.includes(path[0]);
+  const isAuthPath = path[0] === 'auth' && ['me', 'change-password'].includes(path[1]) && path.length === 2;
+  if (!isInventoryPath && !isAuthPath) {
     return NextResponse.json({ message: 'Đường dẫn không hợp lệ' }, { status: 404 });
   }
   try {
-    const upstream = await fetch(`${process.env.BACKEND_URL ?? 'http://127.0.0.1:3000'}/${path.join('/')}`, {
+    const query = request.nextUrl.search;
+    const upstream = await fetch(`${process.env.BACKEND_URL ?? 'http://127.0.0.1:3000'}/api/${path.join('/')}${query}`, {
       method: request.method,
       headers: { authorization: `Bearer ${token}`, ...(request.method !== 'GET' ? { 'content-type': 'application/json' } : {}) },
       body: request.method === 'GET' ? undefined : await request.text(),

@@ -5,7 +5,7 @@ import { IdResponse } from '../responses/inventory.response';
 import { InventoryService } from '../services/inventory.service';
 
 @UseGuards(AdminGuard)
-@Controller('admin/lots')
+@Controller('lots')
 export class LotsController {
   constructor(private readonly inventory: InventoryService) {}
 
