@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { Stock } from './res/inventory.res';
+import type { Stock } from './res/stock.res';
 
 export async function getStock(): Promise<Stock[]> {
   const { data } = await apiClient.get<Stock[]>('/v1/inventory/stock');

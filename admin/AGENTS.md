@@ -7,3 +7,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Quy ước giao diện admin
+
+Trước khi xây dựng hoặc sửa giao diện, đọc `SKILL.md` trong thư mục này. Ưu tiên các component shadcn/ui tùy biến sẵn trong `src/components/ui`.
+
+For the current application layers, routes, API proxy, state flow, and component boundaries, read `ARCHITECTURE.md` before making changes that span multiple admin areas.

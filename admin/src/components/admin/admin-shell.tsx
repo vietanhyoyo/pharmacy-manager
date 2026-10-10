@@ -4,11 +4,13 @@ import { ReactNode, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { AdminHeader } from './admin-header';
 import { AdminSidebar } from './admin-sidebar';
-import { PasswordDialog } from '@/components/dialogs/password-dialog';
+import { PasswordDialog } from '@/components/customs/dialogs/password-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { getCurrentAdmin, logout as logoutAdmin } from '@/lib/api/auth.api';
 import { sectionForPath } from '@/lib/navigation';
+import { clearInventoryApiStates } from '@/lib/state/inventory-api-state';
+import { lookupsApiState } from '@/lib/state/lookups-api-state';
 import { useAdminStore } from '@/lib/store';
 
 export function AdminShell({ children }: { children: ReactNode }) {
@@ -16,7 +18,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const user = useAdminStore(state => state.user);
   const setUser = useAdminStore(state => state.setUser);
-  const loadLookups = useAdminStore(state => state.loadLookups);
   const [sessionReady, setSessionReady] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const section = sectionForPath(pathname);
@@ -27,7 +28,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       .then(currentUser => {
         if (!active) return;
         setUser(currentUser);
-        void loadLookups().catch(() => undefined);
+        void lookupsApiState.load(undefined).catch(() => undefined);
       })
       .catch(() => {
         if (active) router.replace('/login');
@@ -37,12 +38,13 @@ export function AdminShell({ children }: { children: ReactNode }) {
       });
 
     return () => { active = false; };
-  }, [loadLookups, router, setUser]);
+  }, [router, setUser]);
 
   async function logout() {
     try {
       await logoutAdmin();
     } finally {
+      clearInventoryApiStates();
       setUser(null);
       router.replace('/login');
     }

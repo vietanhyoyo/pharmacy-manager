@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import { ArrowRight, ClipboardList, Pill, Warehouse, Boxes } from 'lucide-react';
-import { AppTable, EmptyState, formatDate, number } from '@/components/inventory-table';
+import { AppTable, EmptyState, formatDate, number } from '@/components/customs/tables/app-table';
+import { InventoryDataRow, InventoryMobileRow } from '@/components/customs/tables/app-table-rows';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import type { Dashboard } from '@/lib/api/res/inventory.res';
+import type { Dashboard } from '@/lib/api/res/dashboard.res';
+
+const movementHeaders = ['Thời gian', 'Thuốc / lô', 'Loại biến động', { label: 'Số lượng', align: 'right' as const }, 'Mã chứng từ'];
 
 export function DashboardView({ data, onEdit }: { data: Dashboard; onEdit: () => void }) {
   const cards = [
@@ -23,7 +26,7 @@ export function DashboardView({ data, onEdit }: { data: Dashboard; onEdit: () =>
         <Card><CardHeader className="border-b"><CardTitle>Sắp hết hạn</CardTitle><CardDescription>Lô thuốc cần được chú ý trong 90 ngày tới</CardDescription><CardAction><Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/lots" />}>Xem tất cả <ArrowRight /></Button></CardAction></CardHeader><CardContent className="p-0">{data.expiring.length ? <div className="divide-y">{data.expiring.map(row => <div key={row.id} className="flex items-center justify-between gap-4 px-4 py-3.5"><div><div className="text-sm font-medium">{row.productName}</div><div className="mt-1 font-mono text-xs text-muted-foreground">{row.batchNumber} · {number(row.quantity)} đơn vị</div></div><Badge variant="secondary" className="h-auto rounded-md py-1.5">{formatDate(row.expiryDate)}</Badge></div>)}</div> : <EmptyState text="Không có lô sắp hết hạn" />}</CardContent></Card>
         <Card><CardHeader className="border-b"><CardTitle>Tồn kho thấp</CardTitle><CardDescription>Thuốc còn dưới 30 đơn vị</CardDescription><CardAction><Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/stock" />}>Xem tồn kho <ArrowRight /></Button></CardAction></CardHeader><CardContent className="p-0">{data.lowStock.length ? <div className="divide-y">{data.lowStock.map(row => <div key={row.id} className="flex items-center justify-between gap-4 px-4 py-3.5"><div><div className="text-sm font-medium">{row.name}</div><div className="mt-1 font-mono text-xs text-muted-foreground">{row.sku}</div></div><div className="text-sm font-semibold tabular-nums">{number(row.quantity)} <span className="text-xs font-normal text-muted-foreground">còn lại</span></div></div>)}</div> : <EmptyState text="Tồn kho đang ổn định" />}</CardContent></Card>
       </div>
-      <Card><CardHeader className="border-b"><CardTitle>Biến động gần đây</CardTitle><CardDescription>Những lần nhập và xuất kho mới nhất</CardDescription><CardAction><Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/movements" />}>Xem lịch sử <ArrowRight /></Button></CardAction></CardHeader><CardContent className="p-0"><AppTable section="movements" rows={data.recent} onEdit={onEdit} compact /></CardContent></Card>
+      <Card><CardHeader className="border-b"><CardTitle>Biến động gần đây</CardTitle><CardDescription>Những lần nhập và xuất kho mới nhất</CardDescription><CardAction><Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/movements" />}>Xem lịch sử <ArrowRight /></Button></CardAction></CardHeader><CardContent className="p-0"><AppTable headers={movementHeaders} rows={data.recent} renderRow={item => <InventoryDataRow section="movements" item={item} onEdit={onEdit} />} renderMobileRow={item => <InventoryMobileRow section="movements" item={item} onEdit={onEdit} />} compact /></CardContent></Card>
     </div>
   );
 }

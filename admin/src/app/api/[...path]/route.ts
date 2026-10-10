@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { backendApiClient } from '@/lib/api/server-client';
 
 async function proxy(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const token = request.cookies.get('admin_session')?.value;
@@ -18,13 +19,20 @@ async function proxy(request: NextRequest, { params }: { params: Promise<{ path:
   }
   try {
     const query = request.nextUrl.search;
-    const upstream = await fetch(`${process.env.BACKEND_URL ?? 'http://127.0.0.1:3000'}/api/${path.join('/')}${query}`, {
+    const upstream = await backendApiClient.request<string>({
+      url: `/api/${path.join('/')}${query}`,
       method: request.method,
       headers: { authorization: `Bearer ${token}`, ...(request.method !== 'GET' ? { 'content-type': 'application/json' } : {}) },
-      body: request.method === 'GET' ? undefined : await request.text(),
-      cache: 'no-store',
+      data: request.method === 'GET' ? undefined : await request.text(),
+      responseType: 'text',
+      transformResponse: [(data: string) => data],
+      validateStatus: () => true,
     });
-    const response = new NextResponse(await upstream.text(), { status: upstream.status, headers: { 'content-type': 'application/json' } });
+    const upstreamContentType = upstream.headers['content-type'];
+    const response = new NextResponse(upstream.data || null, {
+      status: upstream.status,
+      headers: { 'content-type': typeof upstreamContentType === 'string' ? upstreamContentType : 'application/json' },
+    });
     if (upstream.status === 401) response.cookies.delete('admin_session');
     return response;
   } catch {

@@ -14,7 +14,13 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3001](http://localhost:3001) with your browser to see the result. Development API requests are proxied to `http://localhost:3000` using `BACKEND_URL` from `.env.development`.
+
+## Environment configuration
+
+- Development uses `.env.development` and `npm run dev`. The admin app listens on port `3001`; `BACKEND_URL` points to the local API gateway at `http://localhost:3000`.
+- Staging uses `.env.staging`. Copy `.env.staging.example` to `.env.staging`, set the staging API URL, then use `npm run dev:staging`, `npm run build:staging`, or `npm run start:staging`.
+- Production reads `BACKEND_URL` from the deployment environment, or from `.env.production` when running outside a managed deployment. See `.env.production.example` for the expected variable. Do not commit real deployment environment files.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

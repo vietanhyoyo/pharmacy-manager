@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3001",
+    "dev:staging": "node --env-file=.env.staging ./node_modules/next/dist/bin/next dev -p 3001",
     "build": "next build",
-    "start": "next start",
+    "build:staging": "node --env-file=.env.staging ./node_modules/next/dist/bin/next build",
+    "start": "next start -p 3001",
+    "start:staging": "node --env-file=.env.staging ./node_modules/next/dist/bin/next start -p 3001",
     "lint": "eslint"
   },
   "dependencies": {

@@ -1,6 +1,7 @@
 import { apiClient } from './client';
-import type { SupplierRequest } from './req/inventory.req';
-import type { IdResponse, Supplier } from './res/inventory.res';
+import type { SupplierRequest } from './req/suppliers.req';
+import type { IdResponse } from './res/common.res';
+import type { Supplier } from './res/suppliers.res';
 
 export async function getSuppliers(): Promise<Supplier[]> {
   const { data } = await apiClient.get<Supplier[]>('/v1/inventory/suppliers');

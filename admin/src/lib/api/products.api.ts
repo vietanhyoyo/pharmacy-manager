@@ -1,9 +1,10 @@
 import { apiClient } from './client';
-import type { ProductRequest } from './req/inventory.req';
-import type { IdResponse, Product } from './res/inventory.res';
+import type { ProductListQuery, ProductRequest } from './req/products.req';
+import type { IdResponse } from './res/common.res';
+import type { Product } from './res/products.res';
 
-export async function getProducts(): Promise<Product[]> {
-  const { data } = await apiClient.get<Product[]>('/v1/inventory/products');
+export async function getProducts(query: ProductListQuery = {}): Promise<Product[]> {
+  const { data } = await apiClient.get<Product[]>('/v1/inventory/products', { params: query });
   return data;
 }
 

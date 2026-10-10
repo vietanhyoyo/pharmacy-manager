@@ -1,6 +1,6 @@
 import { apiClient } from './client';
-import type { IssueRequest } from './req/inventory.req';
-import type { Issue, IssueCreatedResponse } from './res/inventory.res';
+import type { IssueRequest } from './req/issues.req';
+import type { Issue, IssueCreatedResponse } from './res/issues.res';
 
 export async function getIssues(): Promise<Issue[]> {
   const { data } = await apiClient.get<Issue[]>('/v1/inventory/issues');

@@ -1,30 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useStore } from 'zustand';
 import { PageError, PageLoading } from '@/components/admin/page-feedback';
 import { PageHeader } from '@/components/admin/page-header';
 import { DashboardView } from './dashboard-view';
-import { getDashboard } from '@/lib/api/dashboard.api';
-import type { Dashboard } from '@/lib/api/res/inventory.res';
-import { useAdminStore } from '@/lib/store';
+import { dashboardApiState } from '@/lib/state/dashboard-api-state';
 
 export function DashboardPage() {
-  const revision = useAdminStore(state => state.revision);
-  const refresh = useAdminStore(state => state.refresh);
-  const [loaded, setLoaded] = useState<{ revision: number; data: Dashboard | null; error: string } | null>(null);
-  const loading = loaded?.revision !== revision;
+  const resource = useStore(dashboardApiState.store, state => state);
 
   useEffect(() => {
-    let active = true;
-    getDashboard()
-      .then(data => { if (active) setLoaded({ revision, data, error: '' }); })
-      .catch(cause => { if (active) setLoaded({ revision, data: null, error: cause instanceof Error ? cause.message : 'Không tải được tổng quan' }); });
-    return () => { active = false; };
-  }, [revision]);
+    void dashboardApiState.load(undefined).catch(() => undefined);
+  }, []);
+
+  function reloadDashboard() {
+    void dashboardApiState.load(undefined).catch(() => undefined);
+  }
 
   return <>
     <PageHeader section="dashboard" />
-    {!loading && loaded?.error && <PageError message={loaded.error} onRetry={refresh} />}
-    {loading ? <PageLoading /> : loaded?.data ? <DashboardView data={loaded.data} onEdit={() => {}} /> : null}
+    {resource.error && <PageError message={resource.error} onRetry={reloadDashboard} />}
+    {resource.data === null && resource.isFetching ? <PageLoading /> : resource.data ? <DashboardView data={resource.data} onEdit={() => {}} /> : null}
   </>;
 }

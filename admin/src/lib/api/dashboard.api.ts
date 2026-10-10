@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { Dashboard } from './res/inventory.res';
+import type { Dashboard } from './res/dashboard.res';
 
 export async function getDashboard(): Promise<Dashboard> {
   const { data } = await apiClient.get<Dashboard>('/v1/inventory/dashboard');

@@ -1,6 +1,6 @@
 import { apiClient } from './client';
-import type { ReceiptRequest } from './req/inventory.req';
-import type { Receipt, ReceiptCreatedResponse } from './res/inventory.res';
+import type { ReceiptRequest } from './req/receipts.req';
+import type { Receipt, ReceiptCreatedResponse } from './res/receipts.res';
 
 export async function getReceipts(): Promise<Receipt[]> {
   const { data } = await apiClient.get<Receipt[]>('/v1/inventory/receipts');

@@ -1,0 +1,10 @@
+export { DashboardRepository } from './dashboard.repository';
+export { InventoryRepository } from './app.repository';
+export { IssuesRepository } from './issues.repository';
+export { LookupsRepository } from './lookups.repository';
+export { LotsRepository } from './lots.repository';
+export { MovementsRepository } from './movements.repository';
+export { ProductsRepository } from './products.repository';
+export { ReceiptsRepository } from './receipts.repository';
+export { StockRepository } from './stock.repository';
+export { SuppliersRepository } from './suppliers.repository';

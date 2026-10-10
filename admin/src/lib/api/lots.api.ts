@@ -1,6 +1,7 @@
 import { apiClient } from './client';
-import type { LotRequest } from './req/inventory.req';
-import type { IdResponse, Lot } from './res/inventory.res';
+import type { LotRequest } from './req/lots.req';
+import type { IdResponse } from './res/common.res';
+import type { Lot } from './res/lots.res';
 
 export async function getLots(): Promise<Lot[]> {
   const { data } = await apiClient.get<Lot[]>('/v1/inventory/lots');

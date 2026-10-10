@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "build": "prisma generate && tsc -p tsconfig.build.json",
-    "start": "node dist/apps/inventory-service/main.js",
-    "dev": "tsx watch src/apps/inventory-service/main.ts",
+    "start": "node dist/apps/main.js",
+    "dev": "tsx watch src/apps/main.ts",
     "db:migrate": "node dist/database/migrate.js",
     "db:migrate:dev": "tsx src/database/migrate.ts",
     "prisma:generate": "prisma generate",

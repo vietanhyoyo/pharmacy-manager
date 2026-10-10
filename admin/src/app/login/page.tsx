@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, LockKeyhole, Pill, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Pill, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ export default function LoginPage() {
   const setUser = useAdminStore(state => state.setUser);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
 
@@ -41,7 +42,7 @@ export default function LoginPage() {
         <CardContent className="px-7 py-8">
           <form onSubmit={submit} className="space-y-5">
             <div className="space-y-2"><Label htmlFor="username">Tài khoản</Label><Input id="username" autoComplete="username" value={username} onChange={e => setUsername(e.target.value)} placeholder="Nhập tài khoản" required /></div>
-            <div className="space-y-2"><div className="flex items-center justify-between"><Label htmlFor="password">Mật khẩu</Label><LockKeyhole className="size-3.5 text-zinc-400" /></div><Input id="password" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Nhập mật khẩu" required /></div>
+            <div className="space-y-2"><div className="flex items-center justify-between"><Label htmlFor="password">Mật khẩu</Label><LockKeyhole className="size-3.5 text-zinc-400" /></div><div className="relative"><Input id="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Nhập mật khẩu" className="pr-10" required /><Button type="button" variant="ghost" size="icon-sm" className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground" aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'} aria-pressed={showPassword} onClick={() => setShowPassword(visible => !visible)}>{showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</Button></div></div>
             {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
             <Button className="w-full" type="submit" disabled={pending}>{pending ? 'Đang đăng nhập...' : 'Đăng nhập'}<ArrowRight className="ml-2 size-4" /></Button>
           </form>
