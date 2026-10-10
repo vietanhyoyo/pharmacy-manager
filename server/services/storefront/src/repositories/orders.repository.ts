@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service';
@@ -9,16 +9,27 @@ import { activePrice } from '../services/catalog.service';
 export class OrdersRepository {
   constructor(private readonly db: PrismaService) {}
 
+  async track(organizationId: string, orderNumber: string, phone: string) {
+    const order = await this.db.orders.findFirst({ where: { organization_id: organizationId, order_number: orderNumber, recipient_phone: phone },
+      select: { order_number: true, status: true, payment_status: true, placed_at: true, total_amount: true, branches: { select: { name: true } } } });
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng với mã và số điện thoại này');
+    return { orderNumber: order.order_number, status: order.status, paymentStatus: order.payment_status, placedAt: order.placed_at,
+      total: Number(order.total_amount), branchName: order.branches.name };
+  }
+
   async create(organizationId: string, input: CheckoutRequest) {
     try {
       return await this.db.$transaction(async tx => {
         const previous = await tx.orders.findUnique({
           where: { organization_id_idempotency_key: { organization_id: organizationId, idempotency_key: input.idempotencyKey } },
-          select: { id: true, order_number: true, status: true, total_amount: true },
+          select: { id: true, order_number: true, status: true, total_amount: true, branch_id: true },
         });
-        if (previous) return { id: previous.id, orderNumber: previous.order_number, status: previous.status, total: Number(previous.total_amount) };
+        if (previous) {
+          if (previous.branch_id !== input.branchId) throw new BadRequestException('Mã giao dịch đã dùng cho chi nhánh khác');
+          return { id: previous.id, orderNumber: previous.order_number, status: previous.status, total: Number(previous.total_amount) };
+        }
 
-        const branch = await tx.branches.findFirst({ where: { organization_id: organizationId, status: 'ACTIVE', warehouses: { some: { status: 'ACTIVE', allow_sale: true } } }, orderBy: { code: 'asc' }, select: { id: true, warehouses: { where: { status: 'ACTIVE', allow_sale: true }, select: { id: true }, take: 1 } } });
+        const branch = await tx.branches.findFirst({ where: { id: input.branchId, organization_id: organizationId, status: 'ACTIVE', warehouses: { some: { status: 'ACTIVE', allow_sale: true } } }, select: { id: true, warehouses: { where: { status: 'ACTIVE', allow_sale: true }, orderBy: { created_at: 'asc' }, select: { id: true }, take: 1 } } });
         if (!branch?.warehouses[0]) throw new ServiceUnavailableException('Chưa có chi nhánh nhận đơn hàng');
 
         const orderLines = [];
@@ -35,7 +46,7 @@ export class OrdersRepository {
           const today = new Date(); today.setUTCHours(0, 0, 0, 0);
           const balances = await tx.inventory_balances.findMany({
             where: { organization_id: organizationId, product_id: product.id, warehouse_id: branch.warehouses[0].id,
-              inventory_lots: { status: 'ACTIVE', OR: [{ expiry_date: null }, { expiry_date: { gte: today } }] } },
+              stock_locations: { status: 'ACTIVE' }, inventory_lots: { status: 'ACTIVE', OR: [{ expiry_date: null }, { expiry_date: { gte: today } }] } },
             select: { on_hand_qty: true, reserved_qty: true },
           });
           const available = balances.reduce((sum, balance) => sum + Math.max(0, Number(balance.on_hand_qty) - Number(balance.reserved_qty)), 0);

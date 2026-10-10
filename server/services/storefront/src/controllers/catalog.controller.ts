@@ -5,13 +5,16 @@ import { CatalogService } from '../services/catalog.service';
 export class CatalogController {
   constructor(private readonly catalog: CatalogService) {}
 
-  @Get('categories') categories() { return this.catalog.categories(); }
+  @Get('branches') branches() { return this.catalog.branches(); }
+
+  @Get('categories') categories(@Query('branchId') branchId?: string) { return this.catalog.categories(branchId); }
 
   @Get('products') products(
     @Query('search') search?: string,
     @Query('category') category?: string,
     @Query('page') page?: string,
-  ) { return this.catalog.products({ search, category, page }); }
+    @Query('branchId') branchId?: string,
+  ) { return this.catalog.products({ search, category, page, branchId }); }
 
-  @Get('products/:slug') product(@Param('slug') slug: string) { return this.catalog.product(slug); }
+  @Get('products/:slug') product(@Param('slug') slug: string, @Query('branchId') branchId?: string) { return this.catalog.product(slug, branchId); }
 }

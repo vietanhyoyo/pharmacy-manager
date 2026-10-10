@@ -5,3 +5,8 @@ export async function createOrder(input: CheckoutRequest): Promise<CheckoutRespo
   const { data } = await apiClient.post<CheckoutResponse>('/orders', input);
   return data;
 }
+
+export async function trackOrder(number: string, phone: string): Promise<{ orderNumber: string; status: string; paymentStatus: string; placedAt: string; total: number; branchName: string }> {
+  const { data } = await apiClient.get('/orders/track', { params: { number, phone } });
+  return data;
+}

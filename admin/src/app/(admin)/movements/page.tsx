@@ -11,19 +11,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { movementsApiState } from '@/lib/state/movements-api-state';
+import { useAdminStore } from '@/lib/store';
 
 const headers = ['Thời gian', 'Thuốc / lô', 'Loại biến động', { label: 'Số lượng', align: 'right' as const }, 'Mã chứng từ'];
 
 export default function MovementsPage() {
   const resource = useStore(movementsApiState.store, state => state);
+  const warehouseId = useAdminStore(state => state.selectedWarehouseId);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    void movementsApiState.load(undefined).catch(() => undefined);
-  }, []);
+    if (warehouseId) void movementsApiState.load(warehouseId).catch(() => undefined);
+  }, [warehouseId]);
 
   function reloadMovements() {
-    void movementsApiState.load(undefined).catch(() => undefined);
+    if (warehouseId) void movementsApiState.load(warehouseId).catch(() => undefined);
   }
 
   const rows = useMemo(() => (resource.data ?? []).filter(row =>

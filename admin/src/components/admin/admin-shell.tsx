@@ -18,6 +18,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const user = useAdminStore(state => state.user);
   const setUser = useAdminStore(state => state.setUser);
+  const setSelectedWarehouseId = useAdminStore(state => state.setSelectedWarehouseId);
   const [sessionReady, setSessionReady] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const section = sectionForPath(pathname);
@@ -28,7 +29,15 @@ export function AdminShell({ children }: { children: ReactNode }) {
       .then(currentUser => {
         if (!active) return;
         setUser(currentUser);
-        void lookupsApiState.load(undefined).catch(() => undefined);
+        void lookupsApiState.load(undefined).then(lookups => {
+          if (!active) return;
+          const savedId = localStorage.getItem('pharmacy-manager:selected-warehouse');
+          const warehouseId = lookups.warehouses.some(warehouse => warehouse.id === savedId)
+            ? savedId
+            : lookups.warehouses[0]?.id ?? null;
+          setSelectedWarehouseId(warehouseId);
+          if (warehouseId) localStorage.setItem('pharmacy-manager:selected-warehouse', warehouseId);
+        }).catch(() => undefined);
       })
       .catch(() => {
         if (active) router.replace('/login');
@@ -38,7 +47,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       });
 
     return () => { active = false; };
-  }, [router, setUser]);
+  }, [router, setSelectedWarehouseId, setUser]);
 
   async function logout() {
     try {

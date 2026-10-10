@@ -10,6 +10,8 @@ import { MovementsController } from './controllers/movements.controller';
 import { ProductsController } from './controllers/products.controller';
 import { ReceiptsController } from './controllers/receipts.controller';
 import { StockController } from './controllers/stock.controller';
+import { OnlineOrderStockController } from './controllers/online-order-stock.controller';
+import { OnlineOrderStockService } from './services/online-order-stock.service';
 import { SuppliersController } from './controllers/suppliers.controller';
 import { DashboardRepository } from './repositories/dashboard.repository';
 import { InventoryRepository } from './repositories/app.repository';
@@ -33,12 +35,12 @@ import { SuppliersService } from './services/suppliers.service';
 import { InventoryService } from './services/app.service';
 
 @Module({
-  controllers: [HealthController, DashboardController, LookupsController, ProductsController, SuppliersController, LotsController, StockController, ReceiptsController, IssuesController, MovementsController],
+  controllers: [HealthController, DashboardController, LookupsController, ProductsController, SuppliersController, LotsController, StockController, ReceiptsController, IssuesController, MovementsController, OnlineOrderStockController],
   providers: [
     DashboardRepository, IssuesRepository, InventoryRepository, LookupsRepository, LotsRepository,
     MovementsRepository, ProductsRepository, ReceiptsRepository, StockRepository, SuppliersRepository,
     DashboardService, IssuesService, InventoryService, LookupsService, LotsService, MovementsService, PrismaService,
-    ProductsService, ReceiptsService, StockService, SuppliersService, InventoryAuthGuard,
+    ProductsService, ReceiptsService, StockService, SuppliersService, InventoryAuthGuard, OnlineOrderStockService,
   ],
   exports: [InventoryService, PrismaService],
 })

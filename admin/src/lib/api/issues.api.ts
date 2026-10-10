@@ -3,8 +3,8 @@ import { API_PREFIXES } from '../../constants/api-paths';
 import type { IssueRequest } from './req/issues.req';
 import type { Issue, IssueCreatedResponse } from './res/issues.res';
 
-export async function getIssues(): Promise<Issue[]> {
-  const { data } = await apiClient.get<Issue[]>(`${API_PREFIXES.inventory}/issues`);
+export async function getIssues(warehouseId: string): Promise<Issue[]> {
+  const { data } = await apiClient.get<Issue[]>(`${API_PREFIXES.inventory}/issues`, { params: { warehouseId } });
   return data;
 }
 

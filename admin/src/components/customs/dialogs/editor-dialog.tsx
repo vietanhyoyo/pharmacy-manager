@@ -23,6 +23,7 @@ import type { Lot } from '@/lib/api/res/lots.res';
 import type { Product } from '@/lib/api/res/products.res';
 import type { Supplier } from '@/lib/api/res/suppliers.res';
 import { lookupsApiState } from '@/lib/state/lookups-api-state';
+import { useAdminStore } from '@/lib/store';
 import type { Section } from '@/lib/types';
 
 type Editor = { section: Section; item?: Product | Lot | Supplier } | null;
@@ -54,6 +55,8 @@ const activeOptions: Option[] = [
 
 export function EditorDialog({ editor, onClose, onSaved }: { editor: Editor; onClose: () => void; onSaved: () => void }) {
   const lookups = useStore(lookupsApiState.store, state => state.data);
+  const warehouseId = useAdminStore(state => state.selectedWarehouseId);
+  const selectedWarehouse = lookups?.warehouses.find(warehouse => warehouse.id === warehouseId);
   const item = editor?.item;
   const product = editor?.section === 'products' ? item as Product | undefined : undefined;
   const supplier = editor?.section === 'suppliers' ? item as Supplier | undefined : undefined;
@@ -77,6 +80,7 @@ export function EditorDialog({ editor, onClose, onSaved }: { editor: Editor; onC
     event.preventDefault();
     if (!editor) return;
     if ((editor.section === 'products' && !form.baseUnitId) || (editor.section === 'lots' && !form.productId)
+      || (['receipts', 'issues'].includes(editor.section) && !warehouseId)
       || (editor.section === 'receipts' && !form.supplierId)
       || (['receipts', 'issues'].includes(editor.section) && lines.some(line => !line.productId || !line.lotId))) {
       setError('Vui lòng chọn đầy đủ các trường bắt buộc');
@@ -97,9 +101,9 @@ export function EditorDialog({ editor, onClose, onSaved }: { editor: Editor; onC
         if (item?.id) await updateLot(item.id, request);
         else await createLot(request);
       } else if (editor.section === 'receipts') {
-        await createReceipt({ supplierId: form.supplierId, lines: lines.map(line => ({ productId: line.productId, lotId: line.lotId, quantity: Number(line.quantity), purchasePrice: Number(line.purchasePrice) })) });
+        await createReceipt({ warehouseId: warehouseId!, supplierId: form.supplierId, lines: lines.map(line => ({ productId: line.productId, lotId: line.lotId, quantity: Number(line.quantity), purchasePrice: Number(line.purchasePrice) })) });
       } else if (editor.section === 'issues') {
-        const request: IssueRequest = { reasonCode: form.reasonCode as IssueRequest['reasonCode'], note: form.note, lines: lines.map(line => ({ productId: line.productId, lotId: line.lotId, quantity: Number(line.quantity) })) };
+        const request: IssueRequest = { warehouseId: warehouseId!, reasonCode: form.reasonCode as IssueRequest['reasonCode'], note: form.note, lines: lines.map(line => ({ productId: line.productId, lotId: line.lotId, quantity: Number(line.quantity) })) };
         await createIssue(request);
       } else return;
       const names: Partial<Record<Section, string>> = {
@@ -162,6 +166,11 @@ export function EditorDialog({ editor, onClose, onSaved }: { editor: Editor; onC
         </div>}
 
         {(editor.section === 'receipts' || editor.section === 'issues') && <div className="space-y-5">
+          <Field label="Kho thực hiện">
+            <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+              {selectedWarehouse ? `${selectedWarehouse.branchName ? `${selectedWarehouse.branchName} · ` : ''}${selectedWarehouse.name}` : 'Chưa chọn kho'}
+            </div>
+          </Field>
           {editor.section === 'receipts'
             ? <Field label="Nhà cung cấp *"><FormSelect label="Nhà cung cấp" value={form.supplierId} onChange={value => set('supplierId', value)} options={lookups?.suppliers.map(row => ({ value: row.id, label: row.name })) || []} placeholder="Chọn nhà cung cấp" required /></Field>
             : <div className="grid gap-4 sm:grid-cols-2">

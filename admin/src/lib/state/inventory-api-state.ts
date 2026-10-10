@@ -8,6 +8,7 @@ import { productsApiState } from './products-api-state';
 import { receiptsApiState } from './receipts-api-state';
 import { stockApiState } from './stock-api-state';
 import { suppliersApiState } from './suppliers-api-state';
+import { ordersApiState, orderBranchesApiState, orderDetailApiState } from './orders-api-state';
 
 type ApiStateLifecycle = { invalidate: () => void; clear: () => void };
 
@@ -33,7 +34,7 @@ const affectedListsByMutation: Record<InventoryListSection, InventoryListSection
 
 /** Invalidate data affected by a successful inventory mutation. */
 export function invalidateInventoryApiStates(section: Section): void {
-  if (section === 'dashboard') return;
+  if (section === 'dashboard' || section === 'orders') return;
 
   for (const list of affectedListsByMutation[section]) inventoryApiStatesBySection[list].invalidate();
   dashboardApiState.invalidate();
@@ -45,4 +46,7 @@ export function clearInventoryApiStates(): void {
   Object.values(inventoryApiStatesBySection).forEach(state => state.clear());
   dashboardApiState.clear();
   lookupsApiState.clear();
+  ordersApiState.clear();
+  orderBranchesApiState.clear();
+  orderDetailApiState.clear();
 }

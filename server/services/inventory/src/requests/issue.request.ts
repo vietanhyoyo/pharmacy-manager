@@ -5,6 +5,7 @@ export type { IssueLineRequest } from './issue-line.request';
 export type { IssueReasonCode } from './issue-reason-code.request';
 
 export type IssueRequest = {
+  warehouseId?: string;
   reasonCode: IssueReasonCode;
   note?: string;
   lines: IssueLineRequest[];

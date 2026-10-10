@@ -6,13 +6,13 @@ import { numeric } from './prisma-values';
 export class LotsRepository {
   constructor(private readonly db: PrismaService) {}
 
-  async lots(orgId: string) {
+  async lots(orgId: string, warehouseId?: string) {
     const lots = await this.db.inventory_lots.findMany({
       where: { organization_id: orgId },
       orderBy: { expiry_date: 'asc' },
       include: {
         products: { select: { name: true, sku: true } },
-        inventory_balances: { where: { organization_id: orgId }, select: { on_hand_qty: true } },
+        inventory_balances: { where: { organization_id: orgId, ...(warehouseId ? { warehouse_id: warehouseId } : {}) }, select: { on_hand_qty: true } },
       },
     });
 

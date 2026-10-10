@@ -9,9 +9,9 @@ import { numeric } from './prisma-values';
 export class IssuesRepository {
   constructor(private readonly db: PrismaService, private readonly inventory: InventoryRepository) {}
 
-  async issues(orgId: string) {
+  async issues(orgId: string, warehouseId?: string) {
     const issues = await this.db.stock_adjustments.findMany({
-      where: { organization_id: orgId, reason_code: { in: ['INTERNAL_USE', 'DAMAGED', 'EXPIRED', 'SAMPLE', 'OTHER'] } },
+      where: { organization_id: orgId, ...(warehouseId ? { warehouse_id: warehouseId } : {}), reason_code: { in: ['INTERNAL_USE', 'DAMAGED', 'EXPIRED', 'SAMPLE', 'OTHER'] } },
       orderBy: { adjusted_at: 'desc' },
       include: { stock_adjustment_lines: { select: { quantity_delta: true } } },
     });

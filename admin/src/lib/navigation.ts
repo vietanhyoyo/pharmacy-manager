@@ -1,8 +1,9 @@
-import { Activity, ArrowDownLeft, ArrowUpRight, Boxes, LayoutDashboard, Pill, Truck, Warehouse } from 'lucide-react';
+import { Activity, ArrowDownLeft, ArrowUpRight, Boxes, LayoutDashboard, Pill, ShoppingBag, Truck, Warehouse } from 'lucide-react';
 import type { Section } from './types';
 
 export const navigation: { section: Section; label: string; href: string; icon: typeof Pill }[] = [
   { section: 'dashboard', label: 'Tổng quan', href: '/', icon: LayoutDashboard },
+  { section: 'orders', label: 'Đơn hàng web', href: '/orders', icon: ShoppingBag },
   { section: 'products', label: 'Danh mục thuốc', href: '/products', icon: Pill },
   { section: 'lots', label: 'Lô hàng', href: '/lots', icon: Boxes },
   { section: 'stock', label: 'Tồn kho', href: '/stock', icon: Warehouse },
@@ -13,6 +14,7 @@ export const navigation: { section: Section; label: string; href: string; icon: 
 ];
 
 export const pageMetadata: Record<Section, { title: string; subtitle: string; listTitle: string; action?: string }> = {
+  orders: { title: 'Đơn hàng trực tuyến', subtitle: 'Xác nhận, giao hàng và theo dõi đơn theo từng chi nhánh.', listTitle: 'Danh sách đơn hàng' },
   dashboard: {
     title: 'Tổng quan kho thuốc',
     subtitle: 'Theo dõi hoạt động và sức khỏe kho hàng theo thời gian thực.',

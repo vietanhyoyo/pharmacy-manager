@@ -6,5 +6,5 @@ import { StockRepository } from '../repositories/stock.repository';
 export class StockService {
   constructor(private readonly repo: StockRepository) {}
 
-  stock(user: AdminUser) { return this.repo.stock(user.organizationId); }
+  stock(user: AdminUser, warehouseId?: string) { return this.repo.stock(user.organizationId, warehouseId); }
 }

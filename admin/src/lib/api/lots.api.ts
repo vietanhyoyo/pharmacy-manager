@@ -4,8 +4,8 @@ import type { LotRequest } from './req/lots.req';
 import type { IdResponse } from './res/common.res';
 import type { Lot } from './res/lots.res';
 
-export async function getLots(): Promise<Lot[]> {
-  const { data } = await apiClient.get<Lot[]>(`${API_PREFIXES.inventory}/lots`);
+export async function getLots(warehouseId: string): Promise<Lot[]> {
+  const { data } = await apiClient.get<Lot[]>(`${API_PREFIXES.inventory}/lots`, { params: { warehouseId } });
   return data;
 }
 

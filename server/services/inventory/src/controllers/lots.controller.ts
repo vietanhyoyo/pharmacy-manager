@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { AdminUser } from '../shared/contracts/admin-user';
 import { LotRequest } from '../requests';
 import { InventoryService } from '../services/app.service';
@@ -12,8 +12,8 @@ export class LotsController {
   constructor(private readonly inventory: InventoryService) {}
 
   @Get()
-  list(@Req() request: AuthenticatedRequest) {
-    return this.inventory.lots(request.admin);
+  list(@Req() request: AuthenticatedRequest, @Query('warehouseId') warehouseId?: string) {
+    return this.inventory.lots(request.admin, warehouseId);
   }
 
   @Post()

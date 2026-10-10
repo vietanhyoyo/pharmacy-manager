@@ -34,7 +34,7 @@ export class ProductsRepository {
       include: {
         categories: { select: { name: true } },
         units: { select: { name: true } },
-        inventory_balances: { where: { organization_id: orgId }, select: { on_hand_qty: true } },
+        inventory_balances: { where: { organization_id: orgId, ...(filters.warehouseId ? { warehouse_id: filters.warehouseId } : {}) }, select: { on_hand_qty: true } },
       },
     });
 

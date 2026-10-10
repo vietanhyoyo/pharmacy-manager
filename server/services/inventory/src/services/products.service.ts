@@ -15,6 +15,7 @@ export class ProductsService {
     const categoryId = optional(query?.categoryId, 36);
     const status = query?.status || null;
     const prescriptionType = query?.prescriptionType || null;
+    const warehouseId = optional(query?.warehouseId, 36);
     const sortBy = query?.sortBy || 'name';
     const sortOrder = query?.sortOrder || 'asc';
     const statuses = new Set<string>(['ACTIVE', 'INACTIVE']);
@@ -29,6 +30,7 @@ export class ProductsService {
 
     const filters: ProductListFilters = {
       search,
+      warehouseId,
       categoryId,
       status: status as ProductListFilters['status'],
       prescriptionType: prescriptionType as ProductListFilters['prescriptionType'],

@@ -18,6 +18,7 @@ import type { Product } from '@/lib/api/res/products.res';
 import { invalidateInventoryApiStates } from '@/lib/state/inventory-api-state';
 import { lookupsApiState } from '@/lib/state/lookups-api-state';
 import { productsApiState } from '@/lib/state/products-api-state';
+import { useAdminStore } from '@/lib/store';
 
 type ProductEditor = { section: 'products'; item?: Product } | null;
 const headers = [
@@ -32,6 +33,7 @@ const headers = [
 export default function ProductsPage() {
   const resource = useStore(productsApiState.store, state => state);
   const categories = useStore(lookupsApiState.store, state => state.data?.categories);
+  const warehouseId = useAdminStore(state => state.selectedWarehouseId);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -49,21 +51,22 @@ export default function ProductsPage() {
     const [sortBy, sortOrder] = sort.split(':') as [ProductListQuery['sortBy'], ProductListQuery['sortOrder']];
     return {
       search: debouncedSearch || undefined,
+      warehouseId: warehouseId ?? undefined,
       categoryId: categoryId || undefined,
       status: (status || undefined) as ProductListQuery['status'],
       prescriptionType: (prescriptionType || undefined) as ProductListQuery['prescriptionType'],
       sortBy,
       sortOrder,
     };
-  }, [categoryId, debouncedSearch, prescriptionType, sort, status]);
+  }, [categoryId, debouncedSearch, prescriptionType, sort, status, warehouseId]);
   const queryKey = JSON.stringify(query);
 
   useEffect(() => {
-    void productsApiState.load(query).catch(() => undefined);
-  }, [query]);
+    if (warehouseId) void productsApiState.load(query).catch(() => undefined);
+  }, [query, warehouseId]);
 
   function reloadProducts() {
-    void productsApiState.load(query).catch(() => undefined);
+    if (warehouseId) void productsApiState.load(query).catch(() => undefined);
   }
 
   function onSaved() {

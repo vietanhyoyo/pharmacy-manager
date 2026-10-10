@@ -6,5 +6,5 @@ import { MovementsRepository } from '../repositories/movements.repository';
 export class MovementsService {
   constructor(private readonly repo: MovementsRepository) {}
 
-  movements(user: AdminUser) { return this.repo.movements(user.organizationId); }
+  movements(user: AdminUser, warehouseId?: string) { return this.repo.movements(user.organizationId, warehouseId); }
 }

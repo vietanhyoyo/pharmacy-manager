@@ -23,7 +23,11 @@ export class LookupsRepository {
       }).then(rows => rows.map(({ product_id, batch_number, expiry_date, ...lot }) => ({
         ...lot, productId: product_id, batchNumber: batch_number, expiryDate: expiry_date,
       }))),
-      this.db.warehouses.findMany({ where: { organization_id: user.organizationId }, select: { id: true, code: true, name: true }, orderBy: { name: 'asc' } }),
+      this.db.warehouses.findMany({
+        where: { organization_id: user.organizationId, status: 'ACTIVE', branch_id: { not: null }, branches: { status: 'ACTIVE' }, stock_locations: { some: { status: 'ACTIVE' } } },
+        select: { id: true, code: true, name: true, branches: { select: { name: true } } },
+        orderBy: { created_at: 'asc' },
+      }).then(rows => rows.map(({ branches, ...warehouse }) => ({ ...warehouse, branchName: branches?.name ?? null }))),
     ]);
     return { categories, units, suppliers, products, lots, warehouses };
   }

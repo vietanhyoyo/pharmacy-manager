@@ -12,9 +12,18 @@ function required(value: unknown, label: string, max: number): string {
 export class OrdersService {
   constructor(private readonly catalog: CatalogRepository, private readonly orders: OrdersRepository) {}
 
+  async track(orderNumber: string, phone: string) {
+    const number = required(orderNumber, 'Mã đơn hàng', 64);
+    const recipientPhone = required(phone, 'Số điện thoại', 32);
+    if (!/^WEB-[0-9]{8}-[A-F0-9]{8}$/.test(number) || !/^[+0-9() .-]{9,32}$/.test(recipientPhone)) throw new BadRequestException('Thông tin tra cứu không hợp lệ');
+    return this.orders.track(await this.catalog.organizationId(), number, recipientPhone);
+  }
+
   async checkout(input: CheckoutRequest) {
     if (!input || typeof input !== 'object') throw new BadRequestException('Dữ liệu đơn hàng không hợp lệ');
     input.idempotencyKey = required(input.idempotencyKey, 'Mã giao dịch', 128);
+    input.branchId = required(input.branchId, 'Chi nhánh', 36);
+    if (!/^[0-9a-f-]{36}$/i.test(input.branchId)) throw new BadRequestException('Chi nhánh không hợp lệ');
     if (!/^[0-9a-f-]{36}$/i.test(input.idempotencyKey)) throw new BadRequestException('Mã giao dịch không hợp lệ');
     if (!input.customer || !input.delivery) throw new BadRequestException('Thiếu thông tin nhận hàng');
     input.customer.name = required(input.customer.name, 'Tên người nhận', 255);

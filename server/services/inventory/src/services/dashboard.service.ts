@@ -6,5 +6,5 @@ import { DashboardRepository } from '../repositories/dashboard.repository';
 export class DashboardService {
   constructor(private readonly repo: DashboardRepository) {}
 
-  dashboard(user: AdminUser) { return this.repo.dashboard(user); }
+  dashboard(user: AdminUser, warehouseId?: string) { return this.repo.dashboard(user, warehouseId); }
 }

@@ -10,14 +10,14 @@ export type InventoryContext = { branchId: string; warehouseId: string; location
 export class InventoryRepository {
   constructor(private readonly db: PrismaService) {}
 
-  async context(orgId: string) {
+  async context(orgId: string, warehouseId?: string) {
     const branch = await this.db.branches.findFirst({
-      where: { organization_id: orgId, status: 'ACTIVE', warehouses: { some: { status: 'ACTIVE', stock_locations: { some: { status: 'ACTIVE' } } } } },
+      where: { organization_id: orgId, status: 'ACTIVE', warehouses: { some: { ...(warehouseId ? { id: warehouseId } : {}), status: 'ACTIVE', stock_locations: { some: { status: 'ACTIVE' } } } } },
       orderBy: { created_at: 'asc' },
       select: {
         id: true,
         warehouses: {
-          where: { status: 'ACTIVE', stock_locations: { some: { status: 'ACTIVE' } } },
+          where: { ...(warehouseId ? { id: warehouseId } : {}), status: 'ACTIVE', stock_locations: { some: { status: 'ACTIVE' } } },
           orderBy: { created_at: 'asc' },
           take: 1,
           select: {

@@ -31,3 +31,4 @@ export interface CatalogPage {
 }
 
 export interface CatalogCategory { id: string; name: string }
+export interface StoreBranch { id: string; code: string; name: string; address: string | null }

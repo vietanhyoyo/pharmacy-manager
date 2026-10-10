@@ -18,7 +18,7 @@ import { createOrder } from '@/services/modules/orders.service';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, ready, clear } = useCart();
+  const { items, ready, clear, branchId, branches } = useCart();
   const requestKey = useRef<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -27,6 +27,7 @@ export default function CheckoutPage() {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy || !items.length) return;
+    if (!branchId) { setError('Vui lòng chọn chi nhánh trước khi đặt hàng.'); return; }
     const form = new FormData(event.currentTarget);
     const name = String(form.get('name') ?? '').trim();
     const phone = String(form.get('phone') ?? '').trim();
@@ -38,7 +39,7 @@ export default function CheckoutPage() {
     setBusy(true); setError('');
     requestKey.current ??= crypto.randomUUID();
     try {
-      const order = await createOrder({ idempotencyKey: requestKey.current, customer: { name, phone }, delivery: { address, ward, district, province }, items: items.map(item => ({ productId: item.productId, productUnitId: item.productUnitId, quantity: item.quantity })) });
+      const order = await createOrder({ idempotencyKey: requestKey.current, branchId, customer: { name, phone }, delivery: { address, ward, district, province }, items: items.map(item => ({ productId: item.productId, productUnitId: item.productUnitId, quantity: item.quantity })) });
       clear();
       router.replace(`/order-success?number=${encodeURIComponent(order.orderNumber)}&total=${order.total}`);
     } catch (caught) { setError(apiError(caught)); }
@@ -53,7 +54,7 @@ export default function CheckoutPage() {
         <Alert className="mt-8 border-border bg-secondary text-secondary-foreground"><AlertDescription><strong className="font-semibold">Thanh toán khi nhận hàng.</strong> Nhà thuốc sẽ liên hệ xác nhận đơn và thông tin giao hàng. Sản phẩm không kê đơn vẫn cần sử dụng đúng hướng dẫn.</AlertDescription></Alert>
         {error && <Alert variant="destructive" className="mt-5"><AlertDescription>{error}</AlertDescription></Alert>}
       </CardContent></Card>
-      <Card className="h-fit rounded-2xl border-border bg-muted/70 py-0"><CardHeader className="p-7 pb-0"><CardTitle className="text-xl font-semibold text-card-foreground">Đơn hàng của bạn</CardTitle></CardHeader><CardContent className="p-7 pt-6"><div className="space-y-4">{items.map(item => <div key={item.productUnitId} className="flex justify-between gap-4 text-sm"><span className="text-muted-foreground">{item.name} <span className="whitespace-nowrap">× {item.quantity}</span></span><span className="shrink-0 font-medium">{money(item.price * item.quantity)}</span></div>)}</div><Separator className="my-6" /><div className="flex justify-between text-lg font-bold text-foreground"><span>Tạm tính</span><span>{money(subtotal)}</span></div><p className="mt-2 text-xs text-muted-foreground">Giá cuối cùng được tính lại tại nhà thuốc.</p><Button disabled={busy} type="submit" className="mt-6 h-12 w-full rounded-xl"><LockKeyhole className="size-4" />{busy ? 'Đang gửi đơn...' : 'Gửi yêu cầu đặt hàng'}</Button><p className="mt-4 text-center text-xs leading-5 text-muted-foreground">Bằng cách gửi đơn, bạn đồng ý để nhà thuốc liên hệ xác nhận.</p></CardContent></Card>
+      <Card className="h-fit rounded-2xl border-border bg-muted/70 py-0"><CardHeader className="p-7 pb-0"><CardTitle className="text-xl font-semibold text-card-foreground">Đơn hàng của bạn</CardTitle></CardHeader><CardContent className="p-7 pt-6"><p className="mb-4 text-sm text-muted-foreground">Chi nhánh: <strong className="text-foreground">{branches.find(branch => branch.id === branchId)?.name ?? 'Đang chọn chi nhánh'}</strong></p><div className="space-y-4">{items.map(item => <div key={item.productUnitId} className="flex justify-between gap-4 text-sm"><span className="text-muted-foreground">{item.name} <span className="whitespace-nowrap">× {item.quantity}</span></span><span className="shrink-0 font-medium">{money(item.price * item.quantity)}</span></div>)}</div><Separator className="my-6" /><div className="flex justify-between text-lg font-bold text-foreground"><span>Tạm tính</span><span>{money(subtotal)}</span></div><p className="mt-2 text-xs text-muted-foreground">Giá cuối cùng được tính lại tại nhà thuốc.</p><Button disabled={busy || !branchId} type="submit" className="mt-6 h-12 w-full rounded-xl"><LockKeyhole className="size-4" />{busy ? 'Đang gửi đơn...' : 'Gửi yêu cầu đặt hàng'}</Button><p className="mt-4 text-center text-xs leading-5 text-muted-foreground">Bằng cách gửi đơn, bạn đồng ý để nhà thuốc liên hệ xác nhận.</p></CardContent></Card>
     </form>}
   </main>;
 }

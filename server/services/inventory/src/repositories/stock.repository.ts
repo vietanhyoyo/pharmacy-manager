@@ -5,9 +5,9 @@ import { PrismaService } from '../database/prisma.service';
 export class StockRepository {
   constructor(private readonly db: PrismaService) {}
 
-  async stock(orgId: string) {
+  async stock(orgId: string, warehouseId?: string) {
     const balances = await this.db.inventory_balances.findMany({
-      where: { organization_id: orgId },
+      where: { organization_id: orgId, ...(warehouseId ? { warehouse_id: warehouseId } : {}) },
       include: {
         products: { select: { sku: true, name: true } },
         inventory_lots: { select: { batch_number: true, expiry_date: true } },

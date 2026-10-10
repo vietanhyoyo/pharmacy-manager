@@ -13,8 +13,13 @@ async function proxy(request: NextRequest, { params }: { params: Promise<{ path:
   if (!path.length || path.some(item => !/^[a-zA-Z0-9_-]+$/.test(item))) return NextResponse.json({ message: 'Đường dẫn không hợp lệ' }, { status: 400 });
   const inventoryPaths = ['dashboard', 'lookups', 'products', 'lots', 'stock', 'receipts', 'issues', 'suppliers', 'movements'];
   const isInventoryPath = path[0] === 'v1' && path[1] === 'inventory' && inventoryPaths.includes(path[2]);
+  const isStorefrontAdminPath = path[0] === 'v1' && path[1] === 'storefront' && path[2] === 'admin' && (
+    (path.length === 4 && ['branches', 'orders'].includes(path[3])) ||
+    (path.length === 5 && path[3] === 'orders') ||
+    (path.length === 6 && path[3] === 'orders' && ['confirm', 'dispatch', 'complete', 'cancel'].includes(path[5]))
+  );
   const isAuthPath = path[0] === 'v1' && path[1] === 'auth' && ['me', 'change-password'].includes(path[2]) && path.length === 3;
-  if (!isInventoryPath && !isAuthPath) {
+  if (!isInventoryPath && !isStorefrontAdminPath && !isAuthPath) {
     return NextResponse.json({ message: 'Đường dẫn không hợp lệ' }, { status: 404 });
   }
   try {

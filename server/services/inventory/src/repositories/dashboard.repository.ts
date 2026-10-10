@@ -7,24 +7,26 @@ import { numeric } from './prisma-values';
 export class DashboardRepository {
   constructor(private readonly db: PrismaService) {}
 
-  async dashboard(user: AdminUser) {
+  async dashboard(user: AdminUser, warehouseId?: string) {
     const organizationId = user.organizationId;
+    const balanceWhere = { organization_id: organizationId, ...(warehouseId ? { warehouse_id: warehouseId } : {}) };
+    const movementWhere = { organization_id: organizationId, ...(warehouseId ? { warehouse_id: warehouseId } : {}) };
     const [productsCount, suppliers, lotsCount, balances, receipts, issues, activeProducts, expiringLots, recentMovements] = await Promise.all([
       this.db.products.count({ where: { organization_id: organizationId } }),
       this.db.suppliers.count({ where: { organization_id: organizationId } }),
       this.db.inventory_lots.count({ where: { organization_id: organizationId } }),
-      this.db.inventory_balances.aggregate({ where: { organization_id: organizationId }, _sum: { on_hand_qty: true } }),
-      this.db.goods_receipts.count({ where: { organization_id: organizationId, status: 'POSTED' } }),
-      this.db.stock_adjustments.count({ where: { organization_id: organizationId, status: 'POSTED' } }),
+      this.db.inventory_balances.aggregate({ where: balanceWhere, _sum: { on_hand_qty: true } }),
+      this.db.goods_receipts.count({ where: { ...movementWhere, status: 'POSTED' } }),
+      this.db.stock_adjustments.count({ where: { ...movementWhere, status: 'POSTED' } }),
       this.db.products.findMany({
         where: { organization_id: organizationId, status: 'ACTIVE' },
-        select: { id: true, sku: true, name: true, inventory_balances: { where: { organization_id: organizationId }, select: { on_hand_qty: true } } },
+        select: { id: true, sku: true, name: true, inventory_balances: { where: balanceWhere, select: { on_hand_qty: true } } },
       }),
       this.db.inventory_lots.findMany({
         where: {
           organization_id: organizationId,
           expiry_date: { lte: this.expiryWindowEnd() },
-          inventory_balances: { some: { organization_id: organizationId, on_hand_qty: { gt: 0 } } },
+          inventory_balances: { some: { ...balanceWhere, on_hand_qty: { gt: 0 } } },
         },
         orderBy: { expiry_date: 'asc' },
         take: 6,
@@ -33,11 +35,11 @@ export class DashboardRepository {
           batch_number: true,
           expiry_date: true,
           products: { select: { name: true } },
-          inventory_balances: { where: { organization_id: organizationId }, select: { on_hand_qty: true } },
+          inventory_balances: { where: balanceWhere, select: { on_hand_qty: true } },
         },
       }),
       this.db.inventory_movements.findMany({
-        where: { organization_id: organizationId },
+        where: movementWhere,
         orderBy: { ledger_seq: 'desc' },
         take: 8,
         select: {

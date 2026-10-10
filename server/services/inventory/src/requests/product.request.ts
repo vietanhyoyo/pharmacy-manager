@@ -11,6 +11,7 @@ export type ProductRequest = {
 };
 
 export type ProductListQuery = {
+  warehouseId?: string;
   search?: string;
   categoryId?: string;
   status?: string;
@@ -20,6 +21,7 @@ export type ProductListQuery = {
 };
 
 export type ProductListFilters = {
+  warehouseId: string | null;
   search: string | null;
   categoryId: string | null;
   status: 'ACTIVE' | 'INACTIVE' | null;

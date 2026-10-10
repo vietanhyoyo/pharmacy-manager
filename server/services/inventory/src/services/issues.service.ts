@@ -11,7 +11,7 @@ import { body, optional, positive, required } from './app-validation';
 export class IssuesService {
   constructor(private readonly repo: IssuesRepository, private readonly inventory: InventoryRepository) {}
 
-  issues(user: AdminUser) { return this.repo.issues(user.organizationId); }
+  issues(user: AdminUser, warehouseId?: string) { return this.repo.issues(user.organizationId, warehouseId); }
 
   async issue(user: AdminUser, input: IssueRequest): Promise<IssueCreatedResponse> {
     body(input);
@@ -30,7 +30,7 @@ export class IssuesService {
         quantity: positive(line.quantity, 'Số lượng'),
       };
     });
-    const context = await this.inventory.context(user.organizationId);
+    const context = await this.inventory.context(user.organizationId, input.warehouseId);
     if (!context) throw new BadRequestException('Chưa có kho hoạt động');
 
     const id = randomUUID();

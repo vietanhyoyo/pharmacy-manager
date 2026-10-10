@@ -10,7 +10,7 @@ import { body, date, required, translateDuplicate } from './app-validation';
 export class LotsService {
   constructor(private readonly repo: LotsRepository) {}
 
-  lots(user: AdminUser) { return this.repo.lots(user.organizationId); }
+  lots(user: AdminUser, warehouseId?: string) { return this.repo.lots(user.organizationId, warehouseId); }
 
   async createLot(user: AdminUser, input: LotRequest): Promise<IdResponse> {
     body(input);

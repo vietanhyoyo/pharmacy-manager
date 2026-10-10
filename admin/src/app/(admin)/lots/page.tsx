@@ -15,21 +15,23 @@ import type { Lot } from '@/lib/api/res/lots.res';
 import { invalidateInventoryApiStates } from '@/lib/state/inventory-api-state';
 import { lookupsApiState } from '@/lib/state/lookups-api-state';
 import { lotsApiState } from '@/lib/state/lots-api-state';
+import { useAdminStore } from '@/lib/store';
 
 type LotEditor = { section: 'lots'; item?: Lot } | null;
 const headers = ['Thuốc', 'Số lô', 'Hạn dùng', { label: 'Tồn kho', align: 'right' as const }, 'Trạng thái', { label: '', className: 'w-14' }];
 
 export default function LotsPage() {
   const resource = useStore(lotsApiState.store, state => state);
+  const warehouseId = useAdminStore(state => state.selectedWarehouseId);
   const [search, setSearch] = useState('');
   const [editor, setEditor] = useState<LotEditor>(null);
 
   useEffect(() => {
-    void lotsApiState.load(undefined).catch(() => undefined);
-  }, []);
+    if (warehouseId) void lotsApiState.load(warehouseId).catch(() => undefined);
+  }, [warehouseId]);
 
   function reloadLots() {
-    void lotsApiState.load(undefined).catch(() => undefined);
+    if (warehouseId) void lotsApiState.load(warehouseId).catch(() => undefined);
   }
 
   const rows = useMemo(() => (resource.data ?? []).filter(row =>

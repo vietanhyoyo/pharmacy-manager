@@ -18,14 +18,34 @@ export class DemoSeedService implements OnApplicationBootstrap {
       () => this.db.branches.findFirst({ where: { organization_id: orgId, code: 'CN01' }, select: { id: true } }),
       id => this.db.branches.create({ data: { id, organization_id: orgId, code: 'CN01', name: 'Chi nhánh trung tâm', address: '12 Nguyễn Huệ, Quận 1, TP.HCM' }, select: { id: true } }),
     );
+    const branchContexts: { branchId: string; warehouseId: string; locationId: string }[] = [];
     const warehouseId = await this.getOrCreate(
       () => this.db.warehouses.findFirst({ where: { organization_id: orgId, code: 'KHO-CHINH' }, select: { id: true } }),
       id => this.db.warehouses.create({ data: { id, organization_id: orgId, branch_id: branchId, code: 'KHO-CHINH', name: 'Kho thuốc chính', warehouse_type: 'SALE', allow_sale: true }, select: { id: true } }),
     );
-    await this.getOrCreate(
+    const locationId = await this.getOrCreate(
       () => this.db.stock_locations.findFirst({ where: { warehouse_id: warehouseId, code: 'KE-A1' }, select: { id: true } }),
       id => this.db.stock_locations.create({ data: { id, warehouse_id: warehouseId, code: 'KE-A1', name: 'Kệ A1' }, select: { id: true } }),
     );
+    branchContexts.push({ branchId, warehouseId, locationId });
+    for (const branch of [
+      { code: 'CN02', name: 'Chi nhánh Bình Thạnh', address: '48 Điện Biên Phủ, Bình Thạnh, TP.HCM', warehouseCode: 'KHO-CN02', warehouseName: 'Kho bán hàng Bình Thạnh' },
+      { code: 'CN03', name: 'Chi nhánh Tân Bình', address: '105 Cộng Hòa, Tân Bình, TP.HCM', warehouseCode: 'KHO-CN03', warehouseName: 'Kho bán hàng Tân Bình' },
+    ]) {
+      const sampleBranchId = await this.getOrCreate(
+        () => this.db.branches.findFirst({ where: { organization_id: orgId, code: branch.code }, select: { id: true } }),
+        id => this.db.branches.create({ data: { id, organization_id: orgId, code: branch.code, name: branch.name, address: branch.address }, select: { id: true } }),
+      );
+      const sampleWarehouseId = await this.getOrCreate(
+        () => this.db.warehouses.findFirst({ where: { organization_id: orgId, code: branch.warehouseCode }, select: { id: true } }),
+        id => this.db.warehouses.create({ data: { id, organization_id: orgId, branch_id: sampleBranchId, code: branch.warehouseCode, name: branch.warehouseName, warehouse_type: 'SALE', allow_sale: true }, select: { id: true } }),
+      );
+      const sampleLocationId = await this.getOrCreate(
+        () => this.db.stock_locations.findFirst({ where: { warehouse_id: sampleWarehouseId, code: 'KE-A1' }, select: { id: true } }),
+        id => this.db.stock_locations.create({ data: { id, warehouse_id: sampleWarehouseId, code: 'KE-A1', name: 'Kệ A1' }, select: { id: true } }),
+      );
+      branchContexts.push({ branchId: sampleBranchId, warehouseId: sampleWarehouseId, locationId: sampleLocationId });
+    }
     const roleId = await this.getOrCreate(
       () => this.db.roles.findFirst({ where: { organization_id: orgId, code: 'ADMIN' }, select: { id: true } }),
       id => this.db.roles.create({ data: { id, organization_id: orgId, code: 'ADMIN', name: 'Quản trị viên' }, select: { id: true } }),
@@ -145,6 +165,7 @@ export class DemoSeedService implements OnApplicationBootstrap {
     ];
     const admin: AdminUser = { id: userId, organizationId: orgId, username: 'admin', fullName: 'Quản trị viên' };
     const seeded: { productId: string; lotId: string; qty: number; cost: number; supplier: string }[] = [];
+    const branchStockItems: { productId: string; lotId: string; qty: number; cost: number; supplier: string }[] = [];
     for (const med of meds) {
       const productId = await this.getOrCreate(
         () => this.db.products.findFirst({ where: { organization_id: orgId, sku: med.sku }, select: { id: true } }),
@@ -176,12 +197,28 @@ export class DemoSeedService implements OnApplicationBootstrap {
           expiry_date: new Date(`${med.expiry}T00:00:00.000Z`),
         }, select: { id: true } }),
       );
+      if (med.prescriptionType === 'OTC') {
+        branchStockItems.push({ productId, lotId, qty: Math.min(med.qty, 80), cost: med.cost, supplier: med.supplier });
+      }
       const balance = await this.db.inventory_balances.findFirst({ where: { organization_id: orgId, lot_id: lotId }, select: { lot_id: true } });
       if (!balance) seeded.push({ productId, lotId, qty: med.qty, cost: med.cost, supplier: med.supplier });
     }
     for (const supplierId of [supplierA, supplierB]) {
       const lines = seeded.filter(m => m.supplier === supplierId).map(m => ({ productId: m.productId, lotId: m.lotId, quantity: m.qty, purchasePrice: m.cost }));
       if (lines.length) await this.inventory.receive(admin, { supplierId, lines });
+    }
+    for (const context of branchContexts.slice(1)) {
+      const existing = await this.db.inventory_balances.findMany({
+        where: { organization_id: orgId, warehouse_id: context.warehouseId, location_id: context.locationId },
+        select: { lot_id: true },
+      });
+      const existingLotIds = new Set(existing.map(balance => balance.lot_id));
+      for (const supplierId of [supplierA, supplierB]) {
+        const lines = branchStockItems
+          .filter(item => item.supplier === supplierId && !existingLotIds.has(item.lotId))
+          .map(item => ({ productId: item.productId, lotId: item.lotId, quantity: item.qty, purchasePrice: item.cost }));
+        if (lines.length) await this.inventory.receiveInContext(admin, context, { supplierId, lines });
+      }
     }
     const issueCount = await this.db.stock_adjustments.count({ where: { organization_id: orgId } });
     if (issueCount === 0 && seeded.length >= 3) await this.inventory.issue(admin, { reasonCode: 'INTERNAL_USE', note: 'Dữ liệu mẫu: sử dụng nội bộ', lines: [

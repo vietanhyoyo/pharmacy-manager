@@ -14,21 +14,23 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/in
 import { invalidateInventoryApiStates } from '@/lib/state/inventory-api-state';
 import { lookupsApiState } from '@/lib/state/lookups-api-state';
 import { receiptsApiState } from '@/lib/state/receipts-api-state';
+import { useAdminStore } from '@/lib/store';
 
 type ReceiptEditor = { section: 'receipts' } | null;
 const headers = ['Mã phiếu', 'Nhà cung cấp', 'Ngày nhập', { label: 'Số dòng', align: 'right' as const }, { label: 'Số lượng', align: 'right' as const }, { label: 'Giá trị', align: 'right' as const }, 'Trạng thái'];
 
 export default function ReceiptsPage() {
   const resource = useStore(receiptsApiState.store, state => state);
+  const warehouseId = useAdminStore(state => state.selectedWarehouseId);
   const [search, setSearch] = useState('');
   const [editor, setEditor] = useState<ReceiptEditor>(null);
 
   useEffect(() => {
-    void receiptsApiState.load(undefined).catch(() => undefined);
-  }, []);
+    if (warehouseId) void receiptsApiState.load(warehouseId).catch(() => undefined);
+  }, [warehouseId]);
 
   function reloadReceipts() {
-    void receiptsApiState.load(undefined).catch(() => undefined);
+    if (warehouseId) void receiptsApiState.load(warehouseId).catch(() => undefined);
   }
 
   const rows = useMemo(() => (resource.data ?? []).filter(row =>
@@ -39,7 +41,7 @@ export default function ReceiptsPage() {
     setEditor(null);
     invalidateInventoryApiStates('receipts');
     reloadReceipts();
-    void lookupsApiState.load(undefined).catch(() => undefined);
+    if (warehouseId) void lookupsApiState.load(undefined).catch(() => undefined);
   }
 
   return (

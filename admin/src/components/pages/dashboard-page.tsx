@@ -6,16 +6,18 @@ import { PageError, PageLoading } from '@/components/admin/page-feedback';
 import { PageHeader } from '@/components/admin/page-header';
 import { DashboardView } from './dashboard-view';
 import { dashboardApiState } from '@/lib/state/dashboard-api-state';
+import { useAdminStore } from '@/lib/store';
 
 export function DashboardPage() {
   const resource = useStore(dashboardApiState.store, state => state);
+  const warehouseId = useAdminStore(state => state.selectedWarehouseId);
 
   useEffect(() => {
-    void dashboardApiState.load(undefined).catch(() => undefined);
-  }, []);
+    if (warehouseId) void dashboardApiState.load(warehouseId).catch(() => undefined);
+  }, [warehouseId]);
 
   function reloadDashboard() {
-    void dashboardApiState.load(undefined).catch(() => undefined);
+    if (warehouseId) void dashboardApiState.load(warehouseId).catch(() => undefined);
   }
 
   return <>

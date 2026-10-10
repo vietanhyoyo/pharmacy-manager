@@ -9,9 +9,9 @@ import { numeric } from './prisma-values';
 export class ReceiptsRepository {
   constructor(private readonly db: PrismaService, private readonly inventory: InventoryRepository) {}
 
-  async receipts(orgId: string) {
+  async receipts(orgId: string, warehouseId?: string) {
     const receipts = await this.db.goods_receipts.findMany({
-      where: { organization_id: orgId },
+      where: { organization_id: orgId, ...(warehouseId ? { warehouse_id: warehouseId } : {}) },
       orderBy: { received_at: 'desc' },
       include: {
         suppliers: { select: { name: true } },

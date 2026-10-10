@@ -6,6 +6,7 @@ export type ReceiptLineRequest = {
 };
 
 export type ReceiptRequest = {
+  warehouseId: string;
   supplierId: string;
   receivedAt?: string;
   lines: ReceiptLineRequest[];

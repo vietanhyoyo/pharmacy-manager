@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AdminUser } from '../shared/contracts/admin-user';
 import { IssueRequest } from '../requests';
 import { InventoryService } from '../services/app.service';
@@ -12,8 +12,8 @@ export class IssuesController {
   constructor(private readonly inventory: InventoryService) {}
 
   @Get()
-  list(@Req() request: AuthenticatedRequest) {
-    return this.inventory.issues(request.admin);
+  list(@Req() request: AuthenticatedRequest, @Query('warehouseId') warehouseId?: string) {
+    return this.inventory.issues(request.admin, warehouseId);
   }
 
   @Post()

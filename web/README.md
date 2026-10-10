@@ -12,11 +12,13 @@ Next.js App Router, TypeScript, Tailwind CSS 4 và shadcn/ui. Cấu trúc tuân 
 
 ## Luồng mua hàng
 
-- Danh mục chỉ hiển thị sản phẩm đang hoạt động, không kê đơn, có listing ở trạng thái `PUBLISHED`.
+- Khách chọn chi nhánh ở đầu trang; danh mục và tồn khả dụng lấy từ kho bán của chi nhánh đó. Đổi chi nhánh sẽ xóa giỏ hàng cũ.
+- Danh mục chỉ hiển thị sản phẩm đang hoạt động, không kê đơn, có listing ở trạng thái `PUBLISHED` và có hàng trong kho bán của chi nhánh.
 - Giá bán lấy từ price list đang hoạt động. Sản phẩm chưa có giá không thể thêm vào giỏ.
 - Giỏ hàng lưu trong `localStorage`. Giá lưu ở đó chỉ để xem; API tính lại giá và kiểm tra tồn khi tạo đơn.
 - Đặt hàng dạng khách, giao tận nơi, trạng thái khởi tạo `PLACED`/`UNPAID`. Chưa tích hợp cổng thanh toán hoặc tài khoản khách hàng. Nhà thuốc cần xác nhận trước khi giao.
 - Hệ thống chưa giữ tồn khi đơn ở trạng thái `PLACED`; xác nhận cuối cùng thuộc quy trình xử lý đơn của nhà thuốc.
+- Sau khi đặt, khách có thể tra cứu trạng thái qua mã đơn và số điện thoại người nhận. Admin xác nhận sẽ giữ hàng; khi giao hàng mới trừ tồn thực tế.
 
 Các component đã được cài bằng `npx shadcn@latest add --all -y`. Những mục trong tài liệu shadcn như Data Table, Date Picker và Typography là công thức ghép từ component gốc, nên CLI không tạo file riêng cho từng mục đó.
 

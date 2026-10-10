@@ -1,4 +1,5 @@
 export type ProductListQuery = {
+  warehouseId?: string;
   search?: string;
   categoryId?: string;
   status?: 'ACTIVE' | 'INACTIVE';

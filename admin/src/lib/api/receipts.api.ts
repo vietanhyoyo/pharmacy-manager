@@ -3,8 +3,8 @@ import { API_PREFIXES } from '../../constants/api-paths';
 import type { ReceiptRequest } from './req/receipts.req';
 import type { Receipt, ReceiptCreatedResponse } from './res/receipts.res';
 
-export async function getReceipts(): Promise<Receipt[]> {
-  const { data } = await apiClient.get<Receipt[]>(`${API_PREFIXES.inventory}/receipts`);
+export async function getReceipts(warehouseId: string): Promise<Receipt[]> {
+  const { data } = await apiClient.get<Receipt[]>(`${API_PREFIXES.inventory}/receipts`, { params: { warehouseId } });
   return data;
 }
 

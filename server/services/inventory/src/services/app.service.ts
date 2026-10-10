@@ -26,14 +26,14 @@ export class InventoryService {
   ) {}
 
   lookups(user: AdminUser) { return this.lookupsFeature.lookups(user); }
-  dashboard(user: AdminUser) { return this.dashboardFeature.dashboard(user); }
+  dashboard(user: AdminUser, warehouseId?: string) { return this.dashboardFeature.dashboard(user, warehouseId); }
   products(user: AdminUser, query: ProductListQuery) { return this.productsFeature.products(user, query); }
   suppliers(user: AdminUser) { return this.suppliersFeature.suppliers(user); }
-  lots(user: AdminUser) { return this.lotsFeature.lots(user); }
-  stock(user: AdminUser) { return this.stockFeature.stock(user); }
-  receipts(user: AdminUser) { return this.receiptsFeature.receipts(user); }
-  issues(user: AdminUser) { return this.issuesFeature.issues(user); }
-  movements(user: AdminUser) { return this.movementsFeature.movements(user); }
+  lots(user: AdminUser, warehouseId?: string) { return this.lotsFeature.lots(user, warehouseId); }
+  stock(user: AdminUser, warehouseId?: string) { return this.stockFeature.stock(user, warehouseId); }
+  receipts(user: AdminUser, warehouseId?: string) { return this.receiptsFeature.receipts(user, warehouseId); }
+  issues(user: AdminUser, warehouseId?: string) { return this.issuesFeature.issues(user, warehouseId); }
+  movements(user: AdminUser, warehouseId?: string) { return this.movementsFeature.movements(user, warehouseId); }
 
   createProduct(user: AdminUser, input: ProductRequest) { return this.productsFeature.createProduct(user, input); }
   updateProduct(user: AdminUser, id: string, input: ProductRequest) { return this.productsFeature.updateProduct(user, id, input); }
@@ -42,5 +42,8 @@ export class InventoryService {
   createLot(user: AdminUser, input: LotRequest) { return this.lotsFeature.createLot(user, input); }
   updateLot(user: AdminUser, id: string, input: LotRequest) { return this.lotsFeature.updateLot(user, id, input); }
   receive(user: AdminUser, input: ReceiptRequest) { return this.receiptsFeature.receive(user, input); }
+  receiveInContext(user: AdminUser, context: { branchId: string; warehouseId: string; locationId: string }, input: ReceiptRequest) {
+    return this.receiptsFeature.receiveInContext(user, context, input);
+  }
   issue(user: AdminUser, input: IssueRequest) { return this.issuesFeature.issue(user, input); }
 }

@@ -14,21 +14,23 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/in
 import { invalidateInventoryApiStates } from '@/lib/state/inventory-api-state';
 import { lookupsApiState } from '@/lib/state/lookups-api-state';
 import { issuesApiState } from '@/lib/state/issues-api-state';
+import { useAdminStore } from '@/lib/store';
 
 type IssueEditor = { section: 'issues' } | null;
 const headers = ['Mã phiếu', 'Lý do', 'Ngày xuất', { label: 'Số dòng', align: 'right' as const }, { label: 'Số lượng', align: 'right' as const }, 'Trạng thái'];
 
 export default function IssuesPage() {
   const resource = useStore(issuesApiState.store, state => state);
+  const warehouseId = useAdminStore(state => state.selectedWarehouseId);
   const [search, setSearch] = useState('');
   const [editor, setEditor] = useState<IssueEditor>(null);
 
   useEffect(() => {
-    void issuesApiState.load(undefined).catch(() => undefined);
-  }, []);
+    if (warehouseId) void issuesApiState.load(warehouseId).catch(() => undefined);
+  }, [warehouseId]);
 
   function reloadIssues() {
-    void issuesApiState.load(undefined).catch(() => undefined);
+    if (warehouseId) void issuesApiState.load(warehouseId).catch(() => undefined);
   }
 
   const rows = useMemo(() => (resource.data ?? []).filter(row =>
@@ -39,7 +41,7 @@ export default function IssuesPage() {
     setEditor(null);
     invalidateInventoryApiStates('issues');
     reloadIssues();
-    void lookupsApiState.load(undefined).catch(() => undefined);
+    if (warehouseId) void lookupsApiState.load(undefined).catch(() => undefined);
   }
 
   return (

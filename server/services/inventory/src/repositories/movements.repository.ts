@@ -6,9 +6,9 @@ import { integerValue } from './prisma-values';
 export class MovementsRepository {
   constructor(private readonly db: PrismaService) {}
 
-  async movements(orgId: string) {
+  async movements(orgId: string, warehouseId?: string) {
     const movements = await this.db.inventory_movements.findMany({
-      where: { organization_id: orgId },
+      where: { organization_id: orgId, ...(warehouseId ? { warehouse_id: warehouseId } : {}) },
       orderBy: { ledger_seq: 'desc' },
       take: 200,
       include: {

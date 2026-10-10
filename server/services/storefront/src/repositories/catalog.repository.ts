@@ -22,18 +22,30 @@ export class CatalogRepository {
     return organization.id;
   }
 
-  async categories(organizationId: string) {
+  async branches(organizationId: string) {
+    return this.db.branches.findMany({ where: { organization_id: organizationId, status: 'ACTIVE', warehouses: { some: { status: 'ACTIVE', allow_sale: true } } }, select: { id: true, code: true, name: true, address: true }, orderBy: { code: 'asc' } });
+  }
+
+  async branch(organizationId: string, branchId?: string) {
+    return this.db.branches.findFirst({ where: { organization_id: organizationId, status: 'ACTIVE', ...(branchId ? { id: branchId } : {}), warehouses: { some: { status: 'ACTIVE', allow_sale: true } } },
+      orderBy: { code: 'asc' }, select: { id: true, warehouses: { where: { status: 'ACTIVE', allow_sale: true }, orderBy: { created_at: 'asc' }, take: 1, select: { id: true } } } });
+  }
+
+  async categories(organizationId: string, warehouseId: string) {
+    const today = new Date(); today.setUTCHours(0, 0, 0, 0);
     return this.db.categories.findMany({
-      where: { organization_id: organizationId, products: { some: { status: 'ACTIVE', prescription_type: 'OTC', product_listings: { status: 'PUBLISHED' } } } },
+      where: { organization_id: organizationId, products: { some: { status: 'ACTIVE', prescription_type: 'OTC', product_listings: { status: 'PUBLISHED' }, inventory_balances: { some: { warehouse_id: warehouseId, on_hand_qty: { gt: 0 }, stock_locations: { status: 'ACTIVE' }, inventory_lots: { status: 'ACTIVE', OR: [{ expiry_date: null }, { expiry_date: { gte: today } }] } } } } } },
       select: { id: true, name: true }, orderBy: { name: 'asc' },
     });
   }
 
-  async products(organizationId: string, filters: { search?: string; category?: string; page: number }) {
+  async products(organizationId: string, filters: { search?: string; category?: string; page: number; warehouseId: string }) {
+    const today = new Date(); today.setUTCHours(0, 0, 0, 0);
     const where: Prisma.productsWhereInput = {
       organization_id: organizationId,
       status: 'ACTIVE', prescription_type: 'OTC',
       product_listings: { status: 'PUBLISHED' },
+      inventory_balances: { some: { warehouse_id: filters.warehouseId, on_hand_qty: { gt: 0 }, stock_locations: { status: 'ACTIVE' }, inventory_lots: { status: 'ACTIVE', OR: [{ expiry_date: null }, { expiry_date: { gte: today } }] } } },
       ...(filters.search ? { OR: [
         { name: { contains: filters.search } }, { sku: { contains: filters.search } },
         { active_ingredient: { contains: filters.search } },
@@ -54,12 +66,13 @@ export class CatalogRepository {
     });
   }
 
-  async availability(organizationId: string, productId: string) {
+  async availability(organizationId: string, productId: string, warehouseId: string) {
     const today = new Date(); today.setUTCHours(0, 0, 0, 0);
     const balances = await this.db.inventory_balances.findMany({
       where: { organization_id: organizationId, product_id: productId,
         inventory_lots: { status: 'ACTIVE', OR: [{ expiry_date: null }, { expiry_date: { gte: today } }] },
-        warehouses: { allow_sale: true, status: 'ACTIVE' },
+        stock_locations: { status: 'ACTIVE' },
+        warehouse_id: warehouseId,
       },
       select: { on_hand_qty: true, reserved_qty: true },
     });

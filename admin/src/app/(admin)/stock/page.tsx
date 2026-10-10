@@ -11,19 +11,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { stockApiState } from '@/lib/state/stock-api-state';
+import { useAdminStore } from '@/lib/store';
 
 const headers = ['Thuốc', 'Lô / hạn dùng', 'Kho', { label: 'Tồn thực tế', align: 'right' as const }, { label: 'Khả dụng', align: 'right' as const }];
 
 export default function StockPage() {
   const resource = useStore(stockApiState.store, state => state);
+  const warehouseId = useAdminStore(state => state.selectedWarehouseId);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    void stockApiState.load(undefined).catch(() => undefined);
-  }, []);
+    if (warehouseId) void stockApiState.load(warehouseId).catch(() => undefined);
+  }, [warehouseId]);
 
   function reloadStock() {
-    void stockApiState.load(undefined).catch(() => undefined);
+    if (warehouseId) void stockApiState.load(warehouseId).catch(() => undefined);
   }
 
   const rows = useMemo(() => (resource.data ?? []).filter(row =>
