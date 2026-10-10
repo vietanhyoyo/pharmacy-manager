@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
-import { Geist } from 'next/font/google';
+import { Roboto } from 'next/font/google';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { CartProvider } from '@/components/custom/cart-provider';
 import { SiteHeader } from '@/components/custom/site-header';
 import { SiteFooter } from '@/components/custom/site-footer';
 import './globals.css';
 
-const geist = Geist({ subsets: ['latin', 'vietnamese'], variable: '--font-geist-sans' });
+const roboto = Roboto({ subsets: ['latin', 'vietnamese'], variable: '--font-roboto', weight: ['300', '400', '500', '600', '700', '800', '900'] });
 
 export const metadata: Metadata = {
   title: { default: 'Nhà thuốc An Tâm', template: '%s | Nhà thuốc An Tâm' },
@@ -14,5 +14,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="vi" className={geist.variable}><body className="min-h-screen bg-[#f8faf7] text-[#17382b] antialiased"><TooltipProvider><CartProvider><SiteHeader />{children}<SiteFooter /></CartProvider></TooltipProvider></body></html>;
+  return <html lang="vi" className={roboto.variable}><body className="min-h-screen bg-background text-foreground antialiased"><TooltipProvider><CartProvider><SiteHeader />{children}<SiteFooter /></CartProvider></TooltipProvider></body></html>;
 }
