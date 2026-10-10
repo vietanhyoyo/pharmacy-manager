@@ -30,6 +30,7 @@ src/
 │   ├── pages/                   # Page-level compositions, currently dashboard
 │   └── ui/                      # Shared customized shadcn/Base UI primitives
 ├── hooks/                       # Small reusable UI hooks
+├── constants/                   # Shared application constants, including API prefixes
 └── lib/
     ├── api/                     # Axios clients, endpoint functions, request/response types
     ├── state/                   # Zustand API-state managers and invalidation coordinator
@@ -60,7 +61,7 @@ Do not consolidate these routes into a single inventory-list page. Shared compon
 
 ## API Request Flow
 
-Browser-side endpoint functions use `src/lib/api/client.ts`. The Axios client has `baseURL: '/api'`, so requests stay on the admin app's origin and include the HttpOnly session cookie. For example, `apiClient.get('/v1/inventory/products')` requests `/api/v1/inventory/products` from the browser.
+Browser-side endpoint functions use `src/lib/api/client.ts`. The Axios client has `baseURL: '/api'`, so requests stay on the admin app's origin and include the HttpOnly session cookie. Shared versioned prefixes are defined in `src/constants/api-paths.ts` as `API_PREFIXES.auth` (`/v1/auth`) and `API_PREFIXES.inventory` (`/v1/inventory`). Endpoint functions append resource paths to these constants; for example, `${API_PREFIXES.inventory}/products` requests `/api/v1/inventory/products` from the browser.
 
 ```mermaid
 flowchart LR
@@ -82,7 +83,7 @@ Login and logout have dedicated Next.js routes:
 - `POST /api/auth/logout` deletes the cookie locally.
 - Authenticated account and inventory calls go through the catch-all proxy.
 
-Endpoint functions are grouped by business API in `src/lib/api/*.api.ts`. Request and response types belong in matching `req/<domain>.req.ts` and `res/<domain>.res.ts` files. Only broadly shared response shapes belong in `res/common.res.ts`.
+Endpoint functions are grouped by business API in `src/lib/api/*.api.ts`. They should use the shared prefixes from `src/constants/api-paths.ts` instead of repeating `/v1/auth` or `/v1/inventory` literals. Request and response types belong in matching `req/<domain>.req.ts` and `res/<domain>.res.ts` files. Only broadly shared response shapes belong in `res/common.res.ts`.
 
 ## State and Cache Flow
 

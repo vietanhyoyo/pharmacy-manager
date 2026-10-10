@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { API_PREFIXES } from '../../constants/api-paths';
 import type { ChangePasswordRequest, LoginRequest } from './req/auth.req';
 import type { AdminUser, LoginResponse } from './res/auth.res';
 
@@ -8,7 +9,7 @@ export async function login(request: LoginRequest): Promise<AdminUser> {
 }
 
 export async function getCurrentAdmin(): Promise<AdminUser> {
-  const { data } = await apiClient.get<AdminUser>('/v1/auth/me');
+  const { data } = await apiClient.get<AdminUser>(`${API_PREFIXES.auth}/me`);
   return data;
 }
 
@@ -17,5 +18,5 @@ export async function logout(): Promise<void> {
 }
 
 export async function changePassword(request: ChangePasswordRequest): Promise<void> {
-  await apiClient.post('/v1/auth/change-password', request);
+  await apiClient.post(`${API_PREFIXES.auth}/change-password`, request);
 }

@@ -145,7 +145,7 @@ services:
       migrate:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3002/api/internal/health').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3002/api/v1/inventory/health').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 15
@@ -161,6 +161,7 @@ services:
       PORT: 3000
       AUTH_SERVICE_URL: http://auth-service:8081
       INVENTORY_SERVICE_URL: http://inventory-service:3002
+      STOREFRONT_SERVICE_URL: http://storefront-service:3003
       TZ: UTC
     ports:
       - "127.0.0.1:${SERVER_PORT:-3000}:3000"
@@ -168,6 +169,8 @@ services:
       auth-service:
         condition: service_healthy
       inventory-service:
+        condition: service_healthy
+      storefront-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"]
@@ -187,6 +190,47 @@ services:
       PORT: 3001
     ports:
       - "127.0.0.1:${ADMIN_PORT:-3001}:3001"
+    depends_on:
+      gateway:
+        condition: service_healthy
+
+  storefront-service:
+    build:
+      context: ./server/services/storefront
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE:-pharmacy_manager}
+      DB_USER: ${MYSQL_USER:-pharmacy_app}
+      DB_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+      STOREFRONT_ORGANIZATION_CODE: ${STOREFRONT_ORGANIZATION_CODE:-PHARMACY_DEMO}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+      TZ: UTC
+    depends_on:
+      inventory-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3003/api/v1/storefront/health').then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 45s
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      BACKEND_URL: http://gateway:3000
+      PORT: 3004
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3004}:3004"
     depends_on:
       gateway:
         condition: service_healthy

@@ -1,0 +1,1559 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model admin_credentials {
+  user_id       String   @id @db.Char(36)
+  password_hash String   @db.VarChar(255)
+  updated_at    DateTime @default(now()) @db.DateTime(6)
+  users         users    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_admin_credentials_user")
+}
+
+model audit_logs {
+  id              String        @id @db.Char(36)
+  organization_id String        @db.Char(36)
+  actor_user_id   String?       @db.Char(36)
+  branch_id       String?       @db.Char(36)
+  action          String        @db.VarChar(128)
+  entity_type     String        @db.VarChar(128)
+  entity_id       String        @db.Char(36)
+  before_data     Json?
+  after_data      Json?
+  ip_address      String?       @db.VarChar(45)
+  device_id       String?       @db.VarChar(128)
+  created_at      DateTime      @db.DateTime(6)
+  users           users?        @relation(fields: [actor_user_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_audit_logs_actor_user_id")
+  branches        branches?     @relation(fields: [branch_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_audit_logs_branch_id")
+  organizations   organizations @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_audit_logs_organization_id")
+
+  @@index([actor_user_id, created_at], map: "idx_audit_actor")
+  @@index([branch_id, created_at], map: "idx_audit_branch")
+  @@index([organization_id, entity_type, entity_id, created_at], map: "idx_audit_entity")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model branches {
+  id                                                       String                @id @db.Char(36)
+  organization_id                                          String                @db.Char(36)
+  code                                                     String                @db.VarChar(64)
+  name                                                     String                @db.VarChar(255)
+  address                                                  String?               @db.VarChar(500)
+  phone                                                    String?               @db.VarChar(32)
+  timezone                                                 String                @default("Asia/Ho_Chi_Minh") @db.VarChar(64)
+  status                                                   String                @default("ACTIVE") @db.VarChar(32)
+  created_at                                               DateTime              @default(now()) @db.DateTime(6)
+  updated_at                                               DateTime              @default(now()) @db.DateTime(6)
+  audit_logs                                               audit_logs[]
+  organizations                                            organizations         @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_branches_organization_id")
+  carts                                                    carts[]
+  document_sequences                                       document_sequences[]
+  goods_receipts                                           goods_receipts[]
+  inventory_movements                                      inventory_movements[]
+  orders                                                   orders[]
+  pos_devices                                              pos_devices[]
+  pos_shifts                                               pos_shifts[]
+  purchase_orders                                          purchase_orders[]
+  sales                                                    sales[]
+  sales_returns                                            sales_returns[]
+  stock_adjustments                                        stock_adjustments[]
+  stock_counts                                             stock_counts[]
+  stock_transfers_stock_transfers_from_branch_idTobranches stock_transfers[]     @relation("stock_transfers_from_branch_idTobranches")
+  stock_transfers_stock_transfers_to_branch_idTobranches   stock_transfers[]     @relation("stock_transfers_to_branch_idTobranches")
+  supplier_returns                                         supplier_returns[]
+  user_branch_access                                       user_branch_access[]
+  warehouses                                               warehouses[]
+
+  @@unique([organization_id, code], map: "uq_branches_01")
+  @@unique([organization_id, id], map: "uq_branches_org_id")
+  @@index([organization_id, status], map: "idx_branches_org_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model cart_items {
+  id              String        @id @db.Char(36)
+  organization_id String        @db.Char(36)
+  cart_id         String        @db.Char(36)
+  product_id      String        @db.Char(36)
+  product_unit_id String        @db.Char(36)
+  quantity        Decimal       @db.Decimal(20, 6)
+  created_at      DateTime      @default(now()) @db.DateTime(6)
+  updated_at      DateTime      @default(now()) @db.DateTime(6)
+  carts           carts         @relation(fields: [organization_id, cart_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_cart_items_cart")
+  products        products      @relation(fields: [organization_id, product_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_cart_items_product")
+  product_units   product_units @relation(fields: [product_id, product_unit_id], references: [product_id, id], onUpdate: NoAction, map: "fk_online_cart_items_unit")
+
+  @@unique([cart_id, product_unit_id], map: "uq_online_cart_items_unit")
+  @@index([organization_id, product_id], map: "fk_online_cart_items_product")
+  @@index([product_id, product_unit_id], map: "fk_online_cart_items_unit")
+  @@index([organization_id, cart_id], map: "idx_online_cart_items_cart")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model carts {
+  id                  String       @id @db.Char(36)
+  organization_id     String       @db.Char(36)
+  customer_id         String       @db.Char(36)
+  branch_id           String?      @db.Char(36)
+  status              String       @default("ACTIVE") @db.VarChar(32)
+  expires_at          DateTime?    @db.DateTime(6)
+  version             BigInt       @default(0) @db.UnsignedBigInt
+  active_customer_key String?      @db.Char(36)
+  created_at          DateTime     @default(now()) @db.DateTime(6)
+  updated_at          DateTime     @default(now()) @db.DateTime(6)
+  cart_items          cart_items[]
+  branches            branches?    @relation(fields: [organization_id, branch_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_carts_branch")
+  customers           customers    @relation(fields: [organization_id, customer_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_carts_customer")
+  orders              orders[]
+
+  @@unique([organization_id, active_customer_key], map: "uq_online_carts_active_customer")
+  @@unique([organization_id, customer_id, id], map: "uq_online_carts_customer_id")
+  @@unique([organization_id, id], map: "uq_online_carts_org_id")
+  @@index([organization_id, branch_id], map: "fk_online_carts_branch")
+  @@index([status, expires_at], map: "idx_online_carts_expiry")
+}
+
+model categories {
+  id               String        @id @db.Char(36)
+  organization_id  String        @db.Char(36)
+  name             String        @db.VarChar(255)
+  parent_id        String?       @db.Char(36)
+  created_at       DateTime      @default(now()) @db.DateTime(6)
+  updated_at       DateTime      @default(now()) @db.DateTime(6)
+  organizations    organizations @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_categories_organization_id")
+  categories       categories?   @relation("categoriesTocategories", fields: [parent_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_categories_parent_id")
+  other_categories categories[]  @relation("categoriesTocategories")
+  products         products[]
+
+  @@index([parent_id], map: "fk_categories_parent_id")
+  @@index([organization_id, parent_id], map: "idx_categories_org_parent")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model customer_accounts {
+  id                String    @id @db.Char(36)
+  organization_id   String    @db.Char(36)
+  customer_id       String    @db.Char(36)
+  auth_provider     String    @db.VarChar(32)
+  provider_subject  String
+  email             String?   @db.VarChar(255)
+  email_verified_at DateTime? @db.DateTime(6)
+  phone_verified_at DateTime? @db.DateTime(6)
+  status            String    @default("ACTIVE") @db.VarChar(32)
+  created_at        DateTime  @default(now()) @db.DateTime(6)
+  updated_at        DateTime  @default(now()) @db.DateTime(6)
+  customers         customers @relation(fields: [organization_id, customer_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_customer_accounts_customer")
+
+  @@unique([organization_id, customer_id, auth_provider], map: "uq_customer_accounts_customer_provider")
+  @@unique([organization_id, auth_provider, provider_subject], map: "uq_customer_accounts_identity")
+  @@index([organization_id, customer_id], map: "idx_customer_accounts_customer")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model customer_addresses {
+  id                   String    @id @db.Char(36)
+  organization_id      String    @db.Char(36)
+  customer_id          String    @db.Char(36)
+  label                String?   @db.VarChar(64)
+  recipient_name       String    @db.VarChar(255)
+  recipient_phone      String    @db.VarChar(32)
+  address_line1        String    @db.VarChar(500)
+  address_line2        String?   @db.VarChar(500)
+  ward                 String?   @db.VarChar(128)
+  district             String?   @db.VarChar(128)
+  province             String    @db.VarChar(128)
+  postal_code          String?   @db.VarChar(32)
+  country_code         String    @default("VN") @db.Char(2)
+  is_default           Boolean   @default(false)
+  default_customer_key String?   @db.Char(36)
+  created_at           DateTime  @default(now()) @db.DateTime(6)
+  updated_at           DateTime  @default(now()) @db.DateTime(6)
+  customers            customers @relation(fields: [organization_id, customer_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_customer_addresses_customer")
+
+  @@unique([organization_id, default_customer_key], map: "uq_customer_addresses_default")
+  @@index([organization_id, customer_id], map: "idx_customer_addresses_customer")
+}
+
+model customers {
+  id                 String               @id @db.Char(36)
+  organization_id    String               @db.Char(36)
+  code               String?              @db.VarChar(64)
+  name               String?              @db.VarChar(255)
+  phone              String?              @db.VarChar(32)
+  customer_group     String?              @db.VarChar(64)
+  status             String               @default("ACTIVE") @db.VarChar(32)
+  created_at         DateTime             @default(now()) @db.DateTime(6)
+  updated_at         DateTime             @default(now()) @db.DateTime(6)
+  carts              carts[]
+  customer_accounts  customer_accounts[]
+  customer_addresses customer_addresses[]
+  organizations      organizations        @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_customers_organization_id")
+  order_events       order_events[]
+  orders             orders[]
+  sales              sales[]
+
+  @@unique([organization_id, code], map: "uq_customers_01")
+  @@unique([organization_id, id], map: "uq_customers_org_id")
+  @@index([organization_id, name], map: "idx_customers_name")
+  @@index([organization_id, phone], map: "idx_customers_phone")
+}
+
+model document_sequences {
+  id               String        @id @db.Char(36)
+  organization_id  String        @db.Char(36)
+  branch_id        String?       @db.Char(36)
+  doc_type         String        @db.VarChar(32)
+  prefix           String        @db.VarChar(32)
+  period_key       String        @db.VarChar(16)
+  current_no       BigInt        @default(0) @db.UnsignedBigInt
+  version          BigInt        @default(0) @db.UnsignedBigInt
+  created_at       DateTime      @default(now()) @db.DateTime(6)
+  updated_at       DateTime      @default(now()) @db.DateTime(6)
+  branch_scope_key String?       @db.Char(36)
+  branches         branches?     @relation(fields: [branch_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_document_sequences_branch_id")
+  organizations    organizations @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_document_sequences_organization_id")
+
+  @@unique([organization_id, branch_scope_key, doc_type, period_key], map: "uq_document_sequences_01")
+  @@index([branch_id], map: "fk_document_sequences_branch_id")
+  @@index([organization_id, branch_id, doc_type, period_key], map: "idx_docseq_lookup")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model goods_receipt_lines {
+  id                String         @id @db.Char(36)
+  goods_receipt_id  String         @db.Char(36)
+  product_id        String         @db.Char(36)
+  product_unit_id   String         @db.Char(36)
+  quantity          Decimal        @db.Decimal(20, 6)
+  conversion_factor Decimal        @db.Decimal(20, 6)
+  base_quantity     Decimal        @db.Decimal(20, 6)
+  lot_id            String         @db.Char(36)
+  purchase_price    Decimal        @default(0.0000) @db.Decimal(19, 4)
+  discount_amount   Decimal        @default(0.0000) @db.Decimal(19, 4)
+  tax_amount        Decimal        @default(0.0000) @db.Decimal(19, 4)
+  line_total        Decimal        @default(0.0000) @db.Decimal(19, 4)
+  net_cost          Decimal        @default(0.0000) @db.Decimal(19, 4)
+  created_at        DateTime       @default(now()) @db.DateTime(6)
+  updated_at        DateTime       @default(now()) @db.DateTime(6)
+  goods_receipts    goods_receipts @relation(fields: [goods_receipt_id], references: [id], onUpdate: NoAction, map: "fk_goods_receipt_lines_goods_receipt_id")
+  inventory_lots    inventory_lots @relation(fields: [lot_id], references: [id], onUpdate: NoAction, map: "fk_goods_receipt_lines_lot_id")
+  products          products       @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_goods_receipt_lines_product_id")
+  product_units     product_units  @relation(fields: [product_unit_id], references: [id], onUpdate: NoAction, map: "fk_goods_receipt_lines_product_unit_id")
+
+  @@index([lot_id], map: "fk_goods_receipt_lines_lot_id")
+  @@index([product_unit_id], map: "fk_goods_receipt_lines_product_unit_id")
+  @@index([product_id, lot_id], map: "idx_gr_lines_product_lot")
+  @@index([goods_receipt_id], map: "idx_gr_lines_receipt")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model goods_receipts {
+  id                  String                @id @db.Char(36)
+  organization_id     String                @db.Char(36)
+  branch_id           String                @db.Char(36)
+  warehouse_id        String                @db.Char(36)
+  supplier_id         String                @db.Char(36)
+  purchase_order_id   String?               @db.Char(36)
+  receipt_number      String                @db.VarChar(64)
+  status              String                @default("DRAFT") @db.VarChar(32)
+  received_at         DateTime              @db.DateTime(6)
+  posted_at           DateTime?             @db.DateTime(6)
+  created_by          String                @db.Char(36)
+  idempotency_key     String?               @db.VarChar(128)
+  created_at          DateTime              @default(now()) @db.DateTime(6)
+  updated_at          DateTime              @default(now()) @db.DateTime(6)
+  goods_receipt_lines goods_receipt_lines[]
+  branches            branches              @relation(fields: [branch_id], references: [id], onUpdate: NoAction, map: "fk_goods_receipts_branch_id")
+  users               users                 @relation(fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_goods_receipts_created_by")
+  organizations       organizations         @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_goods_receipts_organization_id")
+  purchase_orders     purchase_orders?      @relation(fields: [purchase_order_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_goods_receipts_purchase_order_id")
+  suppliers           suppliers             @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "fk_goods_receipts_supplier_id")
+  warehouses          warehouses            @relation(fields: [warehouse_id], references: [id], onUpdate: NoAction, map: "fk_goods_receipts_warehouse_id")
+
+  @@unique([organization_id, receipt_number], map: "uq_goods_receipts_01")
+  @@unique([organization_id, idempotency_key], map: "uq_goods_receipts_02")
+  @@index([branch_id], map: "fk_goods_receipts_branch_id")
+  @@index([created_by], map: "fk_goods_receipts_created_by")
+  @@index([purchase_order_id], map: "idx_gr_po")
+  @@index([supplier_id, received_at], map: "idx_gr_supplier")
+  @@index([warehouse_id, status, received_at], map: "idx_gr_wh_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model inventory_balances {
+  organization_id String          @db.Char(36)
+  warehouse_id    String          @db.Char(36)
+  location_id     String          @db.Char(36)
+  product_id      String          @db.Char(36)
+  lot_id          String          @db.Char(36)
+  on_hand_qty     Decimal         @default(0.000000) @db.Decimal(20, 6)
+  reserved_qty    Decimal         @default(0.000000) @db.Decimal(20, 6)
+  updated_at      DateTime        @db.DateTime(6)
+  version         BigInt          @default(0) @db.UnsignedBigInt
+  stock_locations stock_locations @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "fk_inventory_balances_location_id")
+  inventory_lots  inventory_lots  @relation(fields: [lot_id], references: [id], onUpdate: NoAction, map: "fk_inventory_balances_lot_id")
+  organizations   organizations   @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_inventory_balances_organization_id")
+  products        products        @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_inventory_balances_product_id")
+  warehouses      warehouses      @relation(fields: [warehouse_id], references: [id], onUpdate: NoAction, map: "fk_inventory_balances_warehouse_id")
+
+  @@id([organization_id, warehouse_id, location_id, product_id, lot_id])
+  @@index([location_id], map: "fk_inventory_balances_location_id")
+  @@index([lot_id, warehouse_id], map: "idx_balances_lot")
+  @@index([product_id, warehouse_id, lot_id], map: "idx_balances_product_wh")
+  @@index([warehouse_id, product_id], map: "idx_balances_wh_product")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model inventory_lots {
+  id                     String                   @id @db.Char(36)
+  organization_id        String                   @db.Char(36)
+  product_id             String                   @db.Char(36)
+  batch_number           String                   @db.VarChar(128)
+  manufacturing_date     DateTime?                @db.Date
+  expiry_date            DateTime?                @db.Date
+  manufacturer_id        String?                  @db.Char(36)
+  status                 String                   @default("ACTIVE") @db.VarChar(32)
+  created_at             DateTime                 @default(now()) @db.DateTime(6)
+  updated_at             DateTime                 @default(now()) @db.DateTime(6)
+  goods_receipt_lines    goods_receipt_lines[]
+  inventory_balances     inventory_balances[]
+  manufacturers          manufacturers?           @relation(fields: [manufacturer_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_inventory_lots_manufacturer_id")
+  organizations          organizations            @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_inventory_lots_organization_id")
+  products               products                 @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_inventory_lots_product_id")
+  inventory_movements    inventory_movements[]
+  inventory_reservations inventory_reservations[]
+  sale_line_allocations  sale_line_allocations[]
+  sale_lines             sale_lines[]
+  sales_return_lines     sales_return_lines[]
+  stock_adjustment_lines stock_adjustment_lines[]
+  stock_count_lines      stock_count_lines[]
+  stock_transfer_lines   stock_transfer_lines[]
+  supplier_return_lines  supplier_return_lines[]
+
+  @@unique([organization_id, product_id, batch_number], map: "uq_inventory_lots_01")
+  @@index([manufacturer_id], map: "fk_inventory_lots_manufacturer_id")
+  @@index([organization_id, expiry_date, status], map: "idx_lots_org_expiry")
+  @@index([product_id, status, expiry_date], map: "idx_lots_product_expiry")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model inventory_movements {
+  id                        String                @id @db.Char(36)
+  ledger_seq                BigInt                @unique(map: "uq_inventory_movements_01") @default(autoincrement()) @db.UnsignedBigInt
+  organization_id           String                @db.Char(36)
+  branch_id                 String?               @db.Char(36)
+  warehouse_id              String                @db.Char(36)
+  location_id               String                @db.Char(36)
+  product_id                String                @db.Char(36)
+  lot_id                    String                @db.Char(36)
+  movement_type             String                @db.VarChar(32)
+  quantity_delta            Decimal               @db.Decimal(20, 6)
+  unit_cost                 Decimal?              @db.Decimal(19, 4)
+  source_type               String                @db.VarChar(64)
+  source_id                 String                @db.Char(36)
+  source_line_id            String?               @db.Char(36)
+  reference_no              String?               @db.VarChar(128)
+  occurred_at               DateTime              @db.DateTime(6)
+  posted_at                 DateTime              @db.DateTime(6)
+  created_by                String?               @db.Char(36)
+  device_id                 String?               @db.Char(36)
+  idempotency_key           String?               @db.VarChar(128)
+  reversal_of_id            String?               @db.Char(36)
+  note                      String?               @db.VarChar(1000)
+  branches                  branches?             @relation(fields: [branch_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_inventory_movements_branch_id")
+  users                     users?                @relation(fields: [created_by], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_inventory_movements_created_by")
+  pos_devices               pos_devices?          @relation(fields: [device_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_inventory_movements_device_id")
+  stock_locations           stock_locations       @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "fk_inventory_movements_location_id")
+  inventory_lots            inventory_lots        @relation(fields: [lot_id], references: [id], onUpdate: NoAction, map: "fk_inventory_movements_lot_id")
+  organizations             organizations         @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_inventory_movements_organization_id")
+  products                  products              @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_inventory_movements_product_id")
+  inventory_movements       inventory_movements?  @relation("inventory_movementsToinventory_movements", fields: [reversal_of_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_inventory_movements_reversal_of_id")
+  other_inventory_movements inventory_movements[] @relation("inventory_movementsToinventory_movements")
+  warehouses                warehouses            @relation(fields: [warehouse_id], references: [id], onUpdate: NoAction, map: "fk_inventory_movements_warehouse_id")
+  stock_counts              stock_counts[]
+
+  @@index([branch_id], map: "fk_inventory_movements_branch_id")
+  @@index([created_by], map: "fk_inventory_movements_created_by")
+  @@index([device_id], map: "fk_inventory_movements_device_id")
+  @@index([location_id], map: "fk_inventory_movements_location_id")
+  @@index([lot_id], map: "fk_inventory_movements_lot_id")
+  @@index([product_id], map: "fk_inventory_movements_product_id")
+  @@index([warehouse_id, location_id, product_id, lot_id, ledger_seq], map: "idx_movements_balance")
+  @@index([organization_id, posted_at, ledger_seq], map: "idx_movements_posted")
+  @@index([organization_id, product_id, occurred_at], map: "idx_movements_product_time")
+  @@index([organization_id, reference_no], map: "idx_movements_reference")
+  @@index([reversal_of_id], map: "idx_movements_reversal")
+  @@index([source_type, source_id, source_line_id], map: "idx_movements_source")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model inventory_reservations {
+  id              String          @id @db.Char(36)
+  organization_id String          @db.Char(36)
+  warehouse_id    String          @db.Char(36)
+  location_id     String          @db.Char(36)
+  product_id      String          @db.Char(36)
+  lot_id          String          @db.Char(36)
+  reserved_qty    Decimal         @db.Decimal(20, 6)
+  source_type     String          @db.VarChar(64)
+  source_id       String          @db.Char(36)
+  expires_at      DateTime?       @db.DateTime(6)
+  status          String          @default("ACTIVE") @db.VarChar(32)
+  created_at      DateTime        @default(now()) @db.DateTime(6)
+  updated_at      DateTime        @default(now()) @db.DateTime(6)
+  stock_locations stock_locations @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "fk_inventory_reservations_location_id")
+  inventory_lots  inventory_lots  @relation(fields: [lot_id], references: [id], onUpdate: NoAction, map: "fk_inventory_reservations_lot_id")
+  organizations   organizations   @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_inventory_reservations_organization_id")
+  products        products        @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_inventory_reservations_product_id")
+  warehouses      warehouses      @relation(fields: [warehouse_id], references: [id], onUpdate: NoAction, map: "fk_inventory_reservations_warehouse_id")
+
+  @@unique([source_type, source_id, warehouse_id, location_id, product_id, lot_id], map: "uq_inventory_reservations_01")
+  @@index([location_id], map: "fk_inventory_reservations_location_id")
+  @@index([lot_id], map: "fk_inventory_reservations_lot_id")
+  @@index([organization_id], map: "fk_inventory_reservations_organization_id")
+  @@index([product_id], map: "fk_inventory_reservations_product_id")
+  @@index([warehouse_id, location_id, product_id, lot_id, status], map: "idx_reservations_balance")
+  @@index([status, expires_at], map: "idx_reservations_expiry")
+}
+
+model manufacturers {
+  id              String           @id @db.Char(36)
+  organization_id String           @db.Char(36)
+  name            String           @db.VarChar(255)
+  country         String?          @db.VarChar(128)
+  created_at      DateTime         @default(now()) @db.DateTime(6)
+  updated_at      DateTime         @default(now()) @db.DateTime(6)
+  inventory_lots  inventory_lots[]
+  organizations   organizations    @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_manufacturers_organization_id")
+  products        products[]
+
+  @@unique([organization_id, name], map: "uq_manufacturers_01")
+}
+
+model migrations {
+  id        Int    @id @default(autoincrement())
+  timestamp BigInt
+  name      String @db.VarChar(255)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model order_discounts {
+  id                   String              @id @db.Char(36)
+  organization_id      String              @db.Char(36)
+  order_id             String              @db.Char(36)
+  order_line_id        String?             @db.Char(36)
+  promotion_id         String?             @db.Char(36)
+  promotion_product_id String?             @db.Char(36)
+  code_snapshot        String              @db.VarChar(64)
+  amount               Decimal             @db.Decimal(19, 4)
+  created_at           DateTime            @default(now()) @db.DateTime(6)
+  updated_at           DateTime            @default(now()) @db.DateTime(6)
+  order_lines          order_lines?        @relation(fields: [order_id, order_line_id], references: [order_id, id], onUpdate: NoAction, map: "fk_online_order_discounts_line")
+  orders               orders              @relation(fields: [organization_id, order_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_order_discounts_order")
+  promotions           promotions?         @relation(fields: [organization_id, promotion_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_order_discounts_promotion")
+  promotion_products   promotion_products? @relation(fields: [organization_id, promotion_product_id, promotion_id], references: [organization_id, id, promotion_id], onUpdate: NoAction, map: "fk_online_order_discounts_rule")
+
+  @@index([order_id, order_line_id], map: "fk_online_order_discounts_line")
+  @@index([organization_id, promotion_product_id, promotion_id], map: "fk_online_order_discounts_rule")
+  @@index([organization_id, order_id], map: "idx_online_order_discounts_order")
+  @@index([organization_id, promotion_id], map: "idx_online_order_discounts_promotion")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model order_events {
+  id                String     @id @db.Char(36)
+  organization_id   String     @db.Char(36)
+  order_id          String     @db.Char(36)
+  from_status       String?    @db.VarChar(32)
+  to_status         String     @db.VarChar(32)
+  actor_type        String     @db.VarChar(32)
+  actor_user_id     String?    @db.Char(36)
+  actor_customer_id String?    @db.Char(36)
+  note              String?    @db.VarChar(1000)
+  created_at        DateTime   @default(now()) @db.DateTime(6)
+  updated_at        DateTime   @default(now()) @db.DateTime(6)
+  customers         customers? @relation(fields: [organization_id, actor_customer_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_order_events_customer")
+  orders            orders     @relation(fields: [organization_id, order_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_order_events_order")
+  users             users?     @relation(fields: [organization_id, actor_user_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_order_events_staff")
+
+  @@index([organization_id, actor_customer_id], map: "fk_online_order_events_customer")
+  @@index([organization_id, actor_user_id], map: "fk_online_order_events_staff")
+  @@index([organization_id, order_id, created_at], map: "idx_online_order_events_order")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model order_lines {
+  id                    String                @id @db.Char(36)
+  organization_id       String                @db.Char(36)
+  order_id              String                @db.Char(36)
+  product_id            String                @db.Char(36)
+  product_unit_id       String                @db.Char(36)
+  product_sku_snapshot  String                @db.VarChar(64)
+  product_name_snapshot String                @db.VarChar(255)
+  unit_code_snapshot    String                @db.VarChar(32)
+  quantity              Decimal               @db.Decimal(20, 6)
+  conversion_factor     Decimal               @db.Decimal(20, 6)
+  base_quantity         Decimal               @db.Decimal(20, 6)
+  unit_price            Decimal               @db.Decimal(19, 4)
+  vat_rate              Decimal               @default(0.0000) @db.Decimal(9, 4)
+  discount_amount       Decimal               @default(0.0000) @db.Decimal(19, 4)
+  tax_amount            Decimal               @default(0.0000) @db.Decimal(19, 4)
+  line_total            Decimal               @db.Decimal(19, 4)
+  prescription_required Boolean               @default(false)
+  created_at            DateTime              @default(now()) @db.DateTime(6)
+  updated_at            DateTime              @default(now()) @db.DateTime(6)
+  order_discounts       order_discounts[]
+  orders                orders                @relation(fields: [organization_id, order_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_order_lines_order")
+  products              products              @relation(fields: [organization_id, product_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_order_lines_product")
+  product_units         product_units         @relation(fields: [product_id, product_unit_id], references: [product_id, id], onUpdate: NoAction, map: "fk_online_order_lines_unit")
+  order_prescriptions   order_prescriptions[]
+
+  @@unique([order_id, id], map: "uq_online_order_lines_order_id")
+  @@index([product_id, product_unit_id], map: "fk_online_order_lines_unit")
+  @@index([organization_id, order_id], map: "idx_online_order_lines_order")
+  @@index([organization_id, product_id], map: "idx_online_order_lines_product")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model order_prescriptions {
+  id               String       @id @db.Char(36)
+  organization_id  String       @db.Char(36)
+  order_id         String       @db.Char(36)
+  order_line_id    String?      @db.Char(36)
+  file_storage_key String       @db.VarChar(512)
+  file_name        String       @db.VarChar(255)
+  mime_type        String       @db.VarChar(128)
+  status           String       @default("PENDING") @db.VarChar(32)
+  reviewed_by      String?      @db.Char(36)
+  reviewed_at      DateTime?    @db.DateTime(6)
+  rejection_reason String?      @db.VarChar(1000)
+  created_at       DateTime     @default(now()) @db.DateTime(6)
+  updated_at       DateTime     @default(now()) @db.DateTime(6)
+  order_lines      order_lines? @relation(fields: [order_id, order_line_id], references: [order_id, id], onUpdate: NoAction, map: "fk_online_order_prescriptions_line")
+  orders           orders       @relation(fields: [organization_id, order_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_order_prescriptions_order")
+  users            users?       @relation(fields: [organization_id, reviewed_by], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_order_prescriptions_reviewer")
+
+  @@unique([organization_id, file_storage_key], map: "uq_online_prescriptions_file")
+  @@index([order_id, order_line_id], map: "fk_online_order_prescriptions_line")
+  @@index([organization_id, reviewed_by], map: "fk_online_order_prescriptions_reviewer")
+  @@index([organization_id, order_id, status], map: "idx_online_prescriptions_order")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model orders {
+  id                     String                @id @db.Char(36)
+  organization_id        String                @db.Char(36)
+  customer_id            String                @db.Char(36)
+  branch_id              String                @db.Char(36)
+  warehouse_id           String                @db.Char(36)
+  cart_id                String?               @db.Char(36)
+  order_number           String                @db.VarChar(64)
+  idempotency_key        String                @db.VarChar(128)
+  status                 String                @default("PLACED") @db.VarChar(32)
+  payment_status         String                @default("UNPAID") @db.VarChar(32)
+  review_status          String                @default("NOT_REQUIRED") @db.VarChar(32)
+  reviewed_by            String?               @db.Char(36)
+  reviewed_at            DateTime?             @db.DateTime(6)
+  fulfillment_method     String                @db.VarChar(32)
+  currency               String                @default("VND") @db.Char(3)
+  subtotal               Decimal               @default(0.0000) @db.Decimal(19, 4)
+  discount_amount        Decimal               @default(0.0000) @db.Decimal(19, 4)
+  tax_amount             Decimal               @default(0.0000) @db.Decimal(19, 4)
+  shipping_fee           Decimal               @default(0.0000) @db.Decimal(19, 4)
+  total_amount           Decimal               @default(0.0000) @db.Decimal(19, 4)
+  recipient_name         String?               @db.VarChar(255)
+  recipient_phone        String?               @db.VarChar(32)
+  shipping_address_line1 String?               @db.VarChar(500)
+  shipping_address_line2 String?               @db.VarChar(500)
+  shipping_ward          String?               @db.VarChar(128)
+  shipping_district      String?               @db.VarChar(128)
+  shipping_province      String?               @db.VarChar(128)
+  shipping_postal_code   String?               @db.VarChar(32)
+  shipping_country_code  String?               @db.Char(2)
+  sale_id                String?               @db.Char(36)
+  placed_at              DateTime              @db.DateTime(6)
+  confirmed_at           DateTime?             @db.DateTime(6)
+  completed_at           DateTime?             @db.DateTime(6)
+  cancelled_at           DateTime?             @db.DateTime(6)
+  created_at             DateTime              @default(now()) @db.DateTime(6)
+  updated_at             DateTime              @default(now()) @db.DateTime(6)
+  order_discounts        order_discounts[]
+  order_events           order_events[]
+  order_lines            order_lines[]
+  order_prescriptions    order_prescriptions[]
+  branches               branches              @relation(fields: [organization_id, branch_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_orders_branch")
+  carts                  carts?                @relation(fields: [organization_id, customer_id, cart_id], references: [organization_id, customer_id, id], onUpdate: NoAction, map: "fk_online_orders_cart")
+  customers              customers             @relation(fields: [organization_id, customer_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_orders_customer")
+  users                  users?                @relation(fields: [organization_id, reviewed_by], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_orders_reviewer")
+  sales                  sales?                @relation(fields: [organization_id, sale_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_orders_sale")
+  warehouses             warehouses            @relation(fields: [organization_id, warehouse_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_orders_warehouse")
+  payment_attempts       payment_attempts[]
+  shipments              shipments?
+
+  @@unique([organization_id, idempotency_key], map: "uq_online_orders_idempotency")
+  @@unique([organization_id, order_number], map: "uq_online_orders_number")
+  @@unique([organization_id, id], map: "uq_online_orders_org_id")
+  @@unique([organization_id, sale_id], map: "uq_online_orders_sale")
+  @@index([organization_id, customer_id, cart_id], map: "fk_online_orders_cart")
+  @@index([organization_id, reviewed_by], map: "fk_online_orders_reviewer")
+  @@index([organization_id, branch_id, status, placed_at], map: "idx_online_orders_branch_status")
+  @@index([organization_id, customer_id, placed_at], map: "idx_online_orders_customer")
+  @@index([organization_id, warehouse_id, status], map: "idx_online_orders_warehouse")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model organizations {
+  id                     String                   @id @db.Char(36)
+  code                   String                   @unique(map: "uq_organizations_01") @db.VarChar(64)
+  name                   String                   @db.VarChar(255)
+  timezone               String                   @default("Asia/Ho_Chi_Minh") @db.VarChar(64)
+  status                 String                   @default("ACTIVE") @db.VarChar(32)
+  created_at             DateTime                 @default(now()) @db.DateTime(6)
+  updated_at             DateTime                 @default(now()) @db.DateTime(6)
+  audit_logs             audit_logs[]
+  branches               branches[]
+  categories             categories[]
+  customers              customers[]
+  document_sequences     document_sequences[]
+  goods_receipts         goods_receipts[]
+  inventory_balances     inventory_balances[]
+  inventory_lots         inventory_lots[]
+  inventory_movements    inventory_movements[]
+  inventory_reservations inventory_reservations[]
+  manufacturers          manufacturers[]
+  price_lists            price_lists[]
+  products               products[]
+  promotions             promotions[]
+  purchase_orders        purchase_orders[]
+  roles                  roles[]
+  sales                  sales[]
+  sales_returns          sales_returns[]
+  stock_adjustments      stock_adjustments[]
+  stock_counts           stock_counts[]
+  stock_transfers        stock_transfers[]
+  supplier_returns       supplier_returns[]
+  suppliers              suppliers[]
+  users                  users[]
+  warehouses             warehouses[]
+
+  @@index([status], map: "idx_organizations_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model payment_attempts {
+  id                      String    @id @db.Char(36)
+  organization_id         String    @db.Char(36)
+  order_id                String    @db.Char(36)
+  provider                String    @db.VarChar(64)
+  payment_method          String    @db.VarChar(32)
+  provider_request_id     String?
+  provider_transaction_id String?
+  idempotency_key         String    @db.VarChar(128)
+  amount                  Decimal   @db.Decimal(19, 4)
+  refunded_amount         Decimal   @default(0.0000) @db.Decimal(19, 4)
+  currency                String    @default("VND") @db.Char(3)
+  status                  String    @default("INITIATED") @db.VarChar(32)
+  requested_at            DateTime  @default(now()) @db.DateTime(6)
+  finalized_at            DateTime? @db.DateTime(6)
+  created_at              DateTime  @default(now()) @db.DateTime(6)
+  updated_at              DateTime  @default(now()) @db.DateTime(6)
+  orders                  orders    @relation(fields: [organization_id, order_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_payment_attempts_order")
+
+  @@unique([organization_id, idempotency_key], map: "uq_online_payments_idempotency")
+  @@unique([organization_id, provider, provider_request_id], map: "uq_online_payments_provider_request")
+  @@unique([organization_id, provider, provider_transaction_id], map: "uq_online_payments_provider_tx")
+  @@index([organization_id, order_id, requested_at], map: "idx_online_payments_order")
+}
+
+model permissions {
+  id               String             @id @db.Char(36)
+  code             String             @unique(map: "uq_permissions_01") @db.VarChar(128)
+  name             String             @db.VarChar(255)
+  created_at       DateTime           @default(now()) @db.DateTime(6)
+  updated_at       DateTime           @default(now()) @db.DateTime(6)
+  role_permissions role_permissions[]
+}
+
+model pos_devices {
+  id                  String                @id @db.Char(36)
+  branch_id           String                @db.Char(36)
+  code                String                @db.VarChar(64)
+  name                String                @db.VarChar(255)
+  status              String                @default("ACTIVE") @db.VarChar(32)
+  created_at          DateTime              @default(now()) @db.DateTime(6)
+  updated_at          DateTime              @default(now()) @db.DateTime(6)
+  inventory_movements inventory_movements[]
+  branches            branches              @relation(fields: [branch_id], references: [id], onUpdate: NoAction, map: "fk_pos_devices_branch_id")
+  pos_shifts          pos_shifts[]
+  sales               sales[]
+
+  @@unique([branch_id, code], map: "uq_pos_devices_01")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model pos_shifts {
+  id            String      @id @db.Char(36)
+  branch_id     String      @db.Char(36)
+  pos_device_id String      @db.Char(36)
+  opened_by     String      @db.Char(36)
+  opened_at     DateTime    @db.DateTime(6)
+  closed_at     DateTime?   @db.DateTime(6)
+  status        String      @default("OPEN") @db.VarChar(32)
+  created_at    DateTime    @default(now()) @db.DateTime(6)
+  updated_at    DateTime    @default(now()) @db.DateTime(6)
+  branches      branches    @relation(fields: [branch_id], references: [id], onUpdate: NoAction, map: "fk_pos_shifts_branch_id")
+  users         users       @relation(fields: [opened_by], references: [id], onUpdate: NoAction, map: "fk_pos_shifts_opened_by")
+  pos_devices   pos_devices @relation(fields: [pos_device_id], references: [id], onUpdate: NoAction, map: "fk_pos_shifts_pos_device_id")
+  sales         sales[]
+
+  @@index([branch_id], map: "fk_pos_shifts_branch_id")
+  @@index([opened_by], map: "fk_pos_shifts_opened_by")
+  @@index([pos_device_id, status, opened_at], map: "idx_pos_shifts_device_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model price_list_items {
+  id              String        @id @db.Char(36)
+  price_list_id   String        @db.Char(36)
+  product_id      String        @db.Char(36)
+  product_unit_id String        @db.Char(36)
+  price           Decimal       @db.Decimal(19, 4)
+  effective_from  DateTime      @db.DateTime(6)
+  effective_to    DateTime?     @db.DateTime(6)
+  created_at      DateTime      @default(now()) @db.DateTime(6)
+  updated_at      DateTime      @default(now()) @db.DateTime(6)
+  price_lists     price_lists   @relation(fields: [price_list_id], references: [id], onUpdate: NoAction, map: "fk_price_list_items_price_list_id")
+  products        products      @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_price_list_items_product_id")
+  product_units   product_units @relation(fields: [product_unit_id], references: [id], onUpdate: NoAction, map: "fk_price_list_items_product_unit_id")
+
+  @@index([product_id], map: "fk_price_list_items_product_id")
+  @@index([product_unit_id], map: "fk_price_list_items_product_unit_id")
+  @@index([price_list_id, product_id, product_unit_id, effective_from, effective_to], map: "idx_price_lookup")
+}
+
+model price_lists {
+  id               String             @id @db.Char(36)
+  organization_id  String             @db.Char(36)
+  code             String             @db.VarChar(64)
+  name             String             @db.VarChar(255)
+  status           String             @default("ACTIVE") @db.VarChar(32)
+  created_at       DateTime           @default(now()) @db.DateTime(6)
+  updated_at       DateTime           @default(now()) @db.DateTime(6)
+  price_list_items price_list_items[]
+  organizations    organizations      @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_price_lists_organization_id")
+
+  @@unique([organization_id, code], map: "uq_price_lists_01")
+}
+
+model product_barcodes {
+  id              String         @id @db.Char(36)
+  product_id      String         @db.Char(36)
+  product_unit_id String?        @db.Char(36)
+  barcode         String         @db.VarChar(128)
+  barcode_type    String?        @db.VarChar(32)
+  is_primary      Boolean        @default(false)
+  status          String         @default("ACTIVE") @db.VarChar(32)
+  created_at      DateTime       @default(now()) @db.DateTime(6)
+  updated_at      DateTime       @default(now()) @db.DateTime(6)
+  products        products       @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_product_barcodes_product_id")
+  product_units   product_units? @relation(fields: [product_unit_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_product_barcodes_product_unit_id")
+
+  @@unique([product_id, barcode], map: "uq_product_barcodes_01")
+  @@index([barcode, status], map: "idx_product_barcodes_lookup")
+  @@index([product_unit_id], map: "idx_product_barcodes_unit")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model product_listings {
+  id                String    @id @db.Char(36)
+  organization_id   String    @db.Char(36)
+  product_id        String    @db.Char(36)
+  slug              String
+  title             String    @db.VarChar(255)
+  description       String?   @db.Text
+  image_storage_key String?   @db.VarChar(512)
+  status            String    @default("DRAFT") @db.VarChar(32)
+  published_at      DateTime? @db.DateTime(6)
+  created_at        DateTime  @default(now()) @db.DateTime(6)
+  updated_at        DateTime  @default(now()) @db.DateTime(6)
+  products          products  @relation(fields: [organization_id, product_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_product_listings_product")
+
+  @@unique([organization_id, product_id], map: "uq_online_listings_product")
+  @@unique([organization_id, slug], map: "uq_online_listings_slug")
+  @@index([organization_id, status, published_at], map: "idx_online_listings_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model product_units {
+  id                                                                                        String                 @id @db.Char(36)
+  product_id                                                                                String                 @db.Char(36)
+  unit_id                                                                                   String                 @db.Char(36)
+  conversion_factor                                                                         Decimal                @default(1.000000) @db.Decimal(20, 6)
+  is_base_unit                                                                              Boolean                @default(false)
+  allow_purchase                                                                            Boolean                @default(true)
+  allow_sale                                                                                Boolean                @default(true)
+  created_at                                                                                DateTime               @default(now()) @db.DateTime(6)
+  updated_at                                                                                DateTime               @default(now()) @db.DateTime(6)
+  cart_items                                                                                cart_items[]
+  goods_receipt_lines                                                                       goods_receipt_lines[]
+  order_lines                                                                               order_lines[]
+  price_list_items                                                                          price_list_items[]
+  product_barcodes                                                                          product_barcodes[]
+  products                                                                                  products               @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_product_units_product_id")
+  units                                                                                     units                  @relation(fields: [unit_id], references: [id], onUpdate: NoAction, map: "fk_product_units_unit_id")
+  promotion_products_promotion_products_gift_product_id_gift_product_unit_idToproduct_units promotion_products[]   @relation("promotion_products_gift_product_id_gift_product_unit_idToproduct_units")
+  promotion_products_promotion_products_product_id_product_unit_idToproduct_units           promotion_products[]   @relation("promotion_products_product_id_product_unit_idToproduct_units")
+  purchase_order_lines                                                                      purchase_order_lines[]
+  sale_lines                                                                                sale_lines[]
+
+  @@unique([product_id, unit_id], map: "uq_product_units_01")
+  @@unique([product_id, id], map: "uq_product_units_product_id")
+  @@index([unit_id], map: "fk_product_units_unit_id")
+  @@index([product_id, allow_sale, allow_purchase], map: "idx_product_units_product")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model products {
+  id                                                                              String                   @id @db.Char(36)
+  organization_id                                                                 String                   @db.Char(36)
+  sku                                                                             String                   @db.VarChar(64)
+  name                                                                            String                   @db.VarChar(255)
+  short_name                                                                      String?                  @db.VarChar(255)
+  category_id                                                                     String?                  @db.Char(36)
+  manufacturer_id                                                                 String?                  @db.Char(36)
+  product_type                                                                    String                   @default("MEDICINE") @db.VarChar(32)
+  active_ingredient                                                               String?                  @db.VarChar(500)
+  strength                                                                        String?                  @db.VarChar(128)
+  dosage_form                                                                     String?                  @db.VarChar(128)
+  registration_number                                                             String?                  @db.VarChar(128)
+  prescription_type                                                               String?                  @db.VarChar(32)
+  track_lot                                                                       Boolean                  @default(true)
+  track_expiry                                                                    Boolean                  @default(true)
+  base_unit_id                                                                    String                   @db.Char(36)
+  vat_rate                                                                        Decimal                  @default(0.0000) @db.Decimal(9, 4)
+  status                                                                          String                   @default("ACTIVE") @db.VarChar(32)
+  created_at                                                                      DateTime                 @default(now()) @db.DateTime(6)
+  updated_at                                                                      DateTime                 @default(now()) @db.DateTime(6)
+  cart_items                                                                      cart_items[]
+  goods_receipt_lines                                                             goods_receipt_lines[]
+  inventory_balances                                                              inventory_balances[]
+  inventory_lots                                                                  inventory_lots[]
+  inventory_movements                                                             inventory_movements[]
+  inventory_reservations                                                          inventory_reservations[]
+  order_lines                                                                     order_lines[]
+  price_list_items                                                                price_list_items[]
+  product_barcodes                                                                product_barcodes[]
+  product_listings                                                                product_listings?
+  product_units                                                                   product_units[]
+  units                                                                           units                    @relation(fields: [base_unit_id], references: [id], onUpdate: NoAction, map: "fk_products_base_unit_id")
+  categories                                                                      categories?              @relation(fields: [category_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_products_category_id")
+  manufacturers                                                                   manufacturers?           @relation(fields: [manufacturer_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_products_manufacturer_id")
+  organizations                                                                   organizations            @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_products_organization_id")
+  promotion_products_promotion_products_organization_id_gift_product_idToproducts promotion_products[]     @relation("promotion_products_organization_id_gift_product_idToproducts")
+  promotion_products_promotion_products_organization_id_product_idToproducts      promotion_products[]     @relation("promotion_products_organization_id_product_idToproducts")
+  purchase_order_lines                                                            purchase_order_lines[]
+  sale_lines                                                                      sale_lines[]
+  sales_return_lines                                                              sales_return_lines[]
+  stock_adjustment_lines                                                          stock_adjustment_lines[]
+  stock_count_lines                                                               stock_count_lines[]
+  stock_transfer_lines                                                            stock_transfer_lines[]
+  supplier_return_lines                                                           supplier_return_lines[]
+
+  @@unique([organization_id, sku], map: "uq_products_01")
+  @@unique([organization_id, id], map: "uq_products_org_id")
+  @@index([base_unit_id], map: "fk_products_base_unit_id")
+  @@index([category_id], map: "fk_products_category_id")
+  @@index([manufacturer_id], map: "fk_products_manufacturer_id")
+  @@index([organization_id, category_id, status], map: "idx_products_org_category")
+  @@index([organization_id, name], map: "idx_products_org_name")
+  @@index([organization_id, registration_number], map: "idx_products_registration")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model promotion_products {
+  id                                                                                   String            @id @db.Char(36)
+  organization_id                                                                      String            @db.Char(36)
+  promotion_id                                                                         String            @db.Char(36)
+  promotion_type                                                                       String            @db.VarChar(32)
+  product_id                                                                           String            @db.Char(36)
+  product_unit_id                                                                      String?           @db.Char(36)
+  minimum_quantity                                                                     Decimal           @default(1.000000) @db.Decimal(20, 6)
+  discount_percent                                                                     Decimal?          @db.Decimal(9, 4)
+  discount_amount                                                                      Decimal?          @db.Decimal(19, 4)
+  buy_quantity                                                                         Decimal?          @db.Decimal(20, 6)
+  get_quantity                                                                         Decimal?          @db.Decimal(20, 6)
+  gift_product_id                                                                      String?           @db.Char(36)
+  gift_product_unit_id                                                                 String?           @db.Char(36)
+  product_unit_scope_key                                                               String?           @db.Char(36)
+  created_at                                                                           DateTime          @default(now()) @db.DateTime(6)
+  updated_at                                                                           DateTime          @default(now()) @db.DateTime(6)
+  order_discounts                                                                      order_discounts[]
+  products_promotion_products_organization_id_gift_product_idToproducts                products?         @relation("promotion_products_organization_id_gift_product_idToproducts", fields: [organization_id, gift_product_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_pp_gift_product")
+  product_units_promotion_products_gift_product_id_gift_product_unit_idToproduct_units product_units?    @relation("promotion_products_gift_product_id_gift_product_unit_idToproduct_units", fields: [gift_product_id, gift_product_unit_id], references: [product_id, id], onDelete: Restrict, onUpdate: NoAction, map: "fk_pp_gift_unit")
+  products_promotion_products_organization_id_product_idToproducts                     products          @relation("promotion_products_organization_id_product_idToproducts", fields: [organization_id, product_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_pp_product")
+  product_units_promotion_products_product_id_product_unit_idToproduct_units           product_units?    @relation("promotion_products_product_id_product_unit_idToproduct_units", fields: [product_id, product_unit_id], references: [product_id, id], onUpdate: NoAction, map: "fk_pp_product_unit")
+  promotions                                                                           promotions        @relation(fields: [organization_id, promotion_id, promotion_type], references: [organization_id, id, promotion_type], onUpdate: NoAction, map: "fk_pp_promotion")
+
+  @@unique([organization_id, id], map: "uq_promotion_products_org_id")
+  @@unique([organization_id, id, promotion_id], map: "uq_promotion_products_rule_promotion")
+  @@unique([promotion_id, product_id, product_unit_scope_key], map: "uq_promotion_products_scope")
+  @@index([gift_product_id, gift_product_unit_id], map: "fk_pp_gift_unit")
+  @@index([product_id, product_unit_id], map: "fk_pp_product_unit")
+  @@index([organization_id, promotion_id, promotion_type], map: "fk_pp_promotion")
+  @@index([organization_id, gift_product_id], map: "idx_promotion_products_gift")
+  @@index([organization_id, product_id, promotion_id], map: "idx_promotion_products_product")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model promotions {
+  id                 String               @id @db.Char(36)
+  organization_id    String               @db.Char(36)
+  code               String               @db.VarChar(64)
+  name               String               @db.VarChar(255)
+  promotion_type     String               @db.VarChar(32)
+  start_at           DateTime             @db.DateTime(6)
+  end_at             DateTime             @db.DateTime(6)
+  status             String               @default("DRAFT") @db.VarChar(32)
+  created_at         DateTime             @default(now()) @db.DateTime(6)
+  updated_at         DateTime             @default(now()) @db.DateTime(6)
+  order_discounts    order_discounts[]
+  promotion_products promotion_products[]
+  organizations      organizations        @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_promotions_organization_id")
+
+  @@unique([organization_id, code], map: "uq_promotions_01")
+  @@unique([organization_id, id], map: "uq_promotions_org_id")
+  @@unique([organization_id, id, promotion_type], map: "uq_promotions_org_id_type")
+  @@index([organization_id, status, start_at, end_at], map: "idx_promotions_active")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model purchase_order_lines {
+  id                String          @id @db.Char(36)
+  purchase_order_id String          @db.Char(36)
+  product_id        String          @db.Char(36)
+  product_unit_id   String          @db.Char(36)
+  quantity          Decimal         @db.Decimal(20, 6)
+  conversion_factor Decimal         @db.Decimal(20, 6)
+  base_quantity     Decimal         @db.Decimal(20, 6)
+  unit_price        Decimal         @default(0.0000) @db.Decimal(19, 4)
+  discount_amount   Decimal         @default(0.0000) @db.Decimal(19, 4)
+  tax_amount        Decimal         @default(0.0000) @db.Decimal(19, 4)
+  line_total        Decimal         @default(0.0000) @db.Decimal(19, 4)
+  created_at        DateTime        @default(now()) @db.DateTime(6)
+  updated_at        DateTime        @default(now()) @db.DateTime(6)
+  products          products        @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_purchase_order_lines_product_id")
+  product_units     product_units   @relation(fields: [product_unit_id], references: [id], onUpdate: NoAction, map: "fk_purchase_order_lines_product_unit_id")
+  purchase_orders   purchase_orders @relation(fields: [purchase_order_id], references: [id], onUpdate: NoAction, map: "fk_purchase_order_lines_purchase_order_id")
+
+  @@index([product_unit_id], map: "fk_purchase_order_lines_product_unit_id")
+  @@index([purchase_order_id], map: "idx_po_lines_po")
+  @@index([product_id], map: "idx_po_lines_product")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model purchase_orders {
+  id                   String                 @id @db.Char(36)
+  organization_id      String                 @db.Char(36)
+  branch_id            String                 @db.Char(36)
+  supplier_id          String                 @db.Char(36)
+  po_number            String                 @db.VarChar(64)
+  status               String                 @default("DRAFT") @db.VarChar(32)
+  ordered_at           DateTime?              @db.DateTime(6)
+  created_by           String                 @db.Char(36)
+  created_at           DateTime               @default(now()) @db.DateTime(6)
+  updated_at           DateTime               @default(now()) @db.DateTime(6)
+  goods_receipts       goods_receipts[]
+  purchase_order_lines purchase_order_lines[]
+  branches             branches               @relation(fields: [branch_id], references: [id], onUpdate: NoAction, map: "fk_purchase_orders_branch_id")
+  users                users                  @relation(fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_purchase_orders_created_by")
+  organizations        organizations          @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_purchase_orders_organization_id")
+  suppliers            suppliers              @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "fk_purchase_orders_supplier_id")
+
+  @@unique([organization_id, po_number], map: "uq_purchase_orders_01")
+  @@index([created_by], map: "fk_purchase_orders_created_by")
+  @@index([branch_id, status, ordered_at], map: "idx_po_branch_status")
+  @@index([supplier_id, status, ordered_at], map: "idx_po_supplier_status")
+}
+
+model role_permissions {
+  id            String      @id @db.Char(36)
+  role_id       String      @db.Char(36)
+  permission_id String      @db.Char(36)
+  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_role_permissions_permission_id")
+  roles         roles       @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_role_permissions_role_id")
+
+  @@unique([role_id, permission_id], map: "uq_role_permissions_01")
+  @@index([permission_id], map: "fk_role_permissions_permission_id")
+}
+
+model roles {
+  id               String             @id @db.Char(36)
+  organization_id  String             @db.Char(36)
+  code             String             @db.VarChar(64)
+  name             String             @db.VarChar(255)
+  created_at       DateTime           @default(now()) @db.DateTime(6)
+  updated_at       DateTime           @default(now()) @db.DateTime(6)
+  role_permissions role_permissions[]
+  organizations    organizations      @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_roles_organization_id")
+  user_roles       user_roles[]
+
+  @@unique([organization_id, code], map: "uq_roles_01")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model sale_line_allocations {
+  id              String          @id @db.Char(36)
+  sale_line_id    String          @db.Char(36)
+  lot_id          String          @db.Char(36)
+  warehouse_id    String          @db.Char(36)
+  location_id     String          @db.Char(36)
+  base_quantity   Decimal         @db.Decimal(20, 6)
+  created_at      DateTime        @default(now()) @db.DateTime(6)
+  updated_at      DateTime        @default(now()) @db.DateTime(6)
+  stock_locations stock_locations @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "fk_sale_line_allocations_location_id")
+  inventory_lots  inventory_lots  @relation(fields: [lot_id], references: [id], onUpdate: NoAction, map: "fk_sale_line_allocations_lot_id")
+  sale_lines      sale_lines      @relation(fields: [sale_line_id], references: [id], onUpdate: NoAction, map: "fk_sale_line_allocations_sale_line_id")
+  warehouses      warehouses      @relation(fields: [warehouse_id], references: [id], onUpdate: NoAction, map: "fk_sale_line_allocations_warehouse_id")
+
+  @@unique([sale_line_id, lot_id, warehouse_id, location_id], map: "uq_sale_line_allocations_01")
+  @@index([location_id], map: "fk_sale_line_allocations_location_id")
+  @@index([warehouse_id], map: "fk_sale_line_allocations_warehouse_id")
+  @@index([lot_id, warehouse_id], map: "idx_alloc_lot")
+  @@index([sale_line_id], map: "idx_alloc_sale_line")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model sale_lines {
+  id                    String                  @id @db.Char(36)
+  sale_id               String                  @db.Char(36)
+  product_id            String                  @db.Char(36)
+  product_unit_id       String                  @db.Char(36)
+  quantity              Decimal                 @db.Decimal(20, 6)
+  conversion_factor     Decimal                 @db.Decimal(20, 6)
+  base_quantity         Decimal                 @db.Decimal(20, 6)
+  unit_price            Decimal                 @default(0.0000) @db.Decimal(19, 4)
+  discount_amount       Decimal                 @default(0.0000) @db.Decimal(19, 4)
+  tax_amount            Decimal                 @default(0.0000) @db.Decimal(19, 4)
+  line_total            Decimal                 @default(0.0000) @db.Decimal(19, 4)
+  lot_id                String?                 @db.Char(36)
+  created_at            DateTime                @default(now()) @db.DateTime(6)
+  updated_at            DateTime                @default(now()) @db.DateTime(6)
+  sale_line_allocations sale_line_allocations[]
+  inventory_lots        inventory_lots?         @relation(fields: [lot_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_sale_lines_lot_id")
+  products              products                @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_sale_lines_product_id")
+  product_units         product_units           @relation(fields: [product_unit_id], references: [id], onUpdate: NoAction, map: "fk_sale_lines_product_unit_id")
+  sales                 sales                   @relation(fields: [sale_id], references: [id], onUpdate: NoAction, map: "fk_sale_lines_sale_id")
+  sales_return_lines    sales_return_lines[]
+
+  @@index([lot_id], map: "fk_sale_lines_lot_id")
+  @@index([product_unit_id], map: "fk_sale_lines_product_unit_id")
+  @@index([product_id], map: "idx_sale_lines_product")
+  @@index([sale_id], map: "idx_sale_lines_sale")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model sale_payments {
+  id              String   @id @db.Char(36)
+  sale_id         String   @db.Char(36)
+  payment_method  String   @db.VarChar(32)
+  amount          Decimal  @db.Decimal(19, 4)
+  provider        String?  @db.VarChar(128)
+  transaction_ref String?  @db.VarChar(255)
+  paid_at         DateTime @db.DateTime(6)
+  created_at      DateTime @default(now()) @db.DateTime(6)
+  updated_at      DateTime @default(now()) @db.DateTime(6)
+  sales           sales    @relation(fields: [sale_id], references: [id], onUpdate: NoAction, map: "fk_sale_payments_sale_id")
+
+  @@index([provider, transaction_ref], map: "idx_sale_payments_ref")
+  @@index([sale_id], map: "idx_sale_payments_sale")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model sales {
+  id              String          @id @db.Char(36)
+  organization_id String          @db.Char(36)
+  branch_id       String          @db.Char(36)
+  warehouse_id    String          @db.Char(36)
+  sale_number     String          @db.VarChar(64)
+  customer_id     String?         @db.Char(36)
+  subtotal        Decimal         @default(0.0000) @db.Decimal(19, 4)
+  discount_amount Decimal         @default(0.0000) @db.Decimal(19, 4)
+  tax_amount      Decimal         @default(0.0000) @db.Decimal(19, 4)
+  total_amount    Decimal         @default(0.0000) @db.Decimal(19, 4)
+  status          String          @default("DRAFT") @db.VarChar(32)
+  sold_at         DateTime?       @db.DateTime(6)
+  created_by      String          @db.Char(36)
+  pos_device_id   String?         @db.Char(36)
+  shift_id        String?         @db.Char(36)
+  idempotency_key String          @db.VarChar(128)
+  created_at      DateTime        @default(now()) @db.DateTime(6)
+  updated_at      DateTime        @default(now()) @db.DateTime(6)
+  orders          orders?
+  sale_lines      sale_lines[]
+  sale_payments   sale_payments[]
+  branches        branches        @relation(fields: [branch_id], references: [id], onUpdate: NoAction, map: "fk_sales_branch_id")
+  users           users           @relation(fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_sales_created_by")
+  customers       customers?      @relation(fields: [customer_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_sales_customer_id")
+  organizations   organizations   @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_sales_organization_id")
+  pos_devices     pos_devices?    @relation(fields: [pos_device_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_sales_pos_device_id")
+  pos_shifts      pos_shifts?     @relation(fields: [shift_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_sales_shift_id")
+  warehouses      warehouses      @relation(fields: [warehouse_id], references: [id], onUpdate: NoAction, map: "fk_sales_warehouse_id")
+  sales_returns   sales_returns[]
+
+  @@unique([organization_id, sale_number], map: "uq_sales_01")
+  @@unique([organization_id, idempotency_key], map: "uq_sales_02")
+  @@unique([organization_id, id], map: "uq_sales_org_id")
+  @@index([created_by], map: "fk_sales_created_by")
+  @@index([pos_device_id], map: "fk_sales_pos_device_id")
+  @@index([warehouse_id], map: "fk_sales_warehouse_id")
+  @@index([branch_id, sold_at, status], map: "idx_sales_branch_time")
+  @@index([customer_id, sold_at], map: "idx_sales_customer")
+  @@index([shift_id, sold_at], map: "idx_sales_shift")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model sales_return_lines {
+  id              String         @id @db.Char(36)
+  sales_return_id String         @db.Char(36)
+  sale_line_id    String?        @db.Char(36)
+  product_id      String         @db.Char(36)
+  lot_id          String         @db.Char(36)
+  quantity        Decimal        @db.Decimal(20, 6)
+  base_quantity   Decimal        @db.Decimal(20, 6)
+  refund_amount   Decimal        @default(0.0000) @db.Decimal(19, 4)
+  created_at      DateTime       @default(now()) @db.DateTime(6)
+  updated_at      DateTime       @default(now()) @db.DateTime(6)
+  inventory_lots  inventory_lots @relation(fields: [lot_id], references: [id], onUpdate: NoAction, map: "fk_sales_return_lines_lot_id")
+  products        products       @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_sales_return_lines_product_id")
+  sale_lines      sale_lines?    @relation(fields: [sale_line_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_sales_return_lines_sale_line_id")
+  sales_returns   sales_returns  @relation(fields: [sales_return_id], references: [id], onUpdate: NoAction, map: "fk_sales_return_lines_sales_return_id")
+
+  @@index([lot_id], map: "fk_sales_return_lines_lot_id")
+  @@index([product_id], map: "fk_sales_return_lines_product_id")
+  @@index([sales_return_id], map: "idx_sales_return_lines_header")
+  @@index([sale_line_id], map: "idx_sales_return_lines_sale_line")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model sales_returns {
+  id                 String               @id @db.Char(36)
+  organization_id    String               @db.Char(36)
+  branch_id          String               @db.Char(36)
+  warehouse_id       String               @db.Char(36)
+  original_sale_id   String?              @db.Char(36)
+  return_number      String               @db.VarChar(64)
+  status             String               @default("DRAFT") @db.VarChar(32)
+  returned_at        DateTime?            @db.DateTime(6)
+  created_by         String               @db.Char(36)
+  created_at         DateTime             @default(now()) @db.DateTime(6)
+  updated_at         DateTime             @default(now()) @db.DateTime(6)
+  sales_return_lines sales_return_lines[]
+  branches           branches             @relation(fields: [branch_id], references: [id], onUpdate: NoAction, map: "fk_sales_returns_branch_id")
+  users              users                @relation(fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_sales_returns_created_by")
+  organizations      organizations        @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_sales_returns_organization_id")
+  sales              sales?               @relation(fields: [original_sale_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_sales_returns_original_sale_id")
+  warehouses         warehouses           @relation(fields: [warehouse_id], references: [id], onUpdate: NoAction, map: "fk_sales_returns_warehouse_id")
+
+  @@unique([organization_id, return_number], map: "uq_sales_returns_01")
+  @@index([created_by], map: "fk_sales_returns_created_by")
+  @@index([warehouse_id], map: "fk_sales_returns_warehouse_id")
+  @@index([branch_id, returned_at], map: "idx_sales_returns_branch")
+  @@index([original_sale_id], map: "idx_sales_returns_sale")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model shipments {
+  id              String    @id @db.Char(36)
+  organization_id String    @db.Char(36)
+  order_id        String    @db.Char(36)
+  carrier         String?   @db.VarChar(64)
+  tracking_number String?
+  status          String    @default("PENDING") @db.VarChar(32)
+  shipped_at      DateTime? @db.DateTime(6)
+  delivered_at    DateTime? @db.DateTime(6)
+  delivery_note   String?   @db.VarChar(1000)
+  created_at      DateTime  @default(now()) @db.DateTime(6)
+  updated_at      DateTime  @default(now()) @db.DateTime(6)
+  orders          orders    @relation(fields: [organization_id, order_id], references: [organization_id, id], onUpdate: NoAction, map: "fk_online_shipments_order")
+
+  @@unique([organization_id, order_id], map: "uq_online_shipments_order")
+  @@unique([organization_id, carrier, tracking_number], map: "uq_online_shipments_tracking")
+  @@index([organization_id, order_id, status], map: "idx_online_shipments_order")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model stock_adjustment_lines {
+  id                  String            @id @db.Char(36)
+  stock_adjustment_id String            @db.Char(36)
+  location_id         String            @db.Char(36)
+  product_id          String            @db.Char(36)
+  lot_id              String            @db.Char(36)
+  quantity_delta      Decimal           @db.Decimal(20, 6)
+  unit_cost           Decimal?          @db.Decimal(19, 4)
+  note                String?           @db.VarChar(1000)
+  created_at          DateTime          @default(now()) @db.DateTime(6)
+  updated_at          DateTime          @default(now()) @db.DateTime(6)
+  stock_locations     stock_locations   @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "fk_stock_adjustment_lines_location_id")
+  inventory_lots      inventory_lots    @relation(fields: [lot_id], references: [id], onUpdate: NoAction, map: "fk_stock_adjustment_lines_lot_id")
+  products            products          @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_stock_adjustment_lines_product_id")
+  stock_adjustments   stock_adjustments @relation(fields: [stock_adjustment_id], references: [id], onUpdate: NoAction, map: "fk_stock_adjustment_lines_stock_adjustment_id")
+
+  @@index([location_id], map: "fk_stock_adjustment_lines_location_id")
+  @@index([lot_id], map: "fk_stock_adjustment_lines_lot_id")
+  @@index([product_id], map: "fk_stock_adjustment_lines_product_id")
+  @@index([stock_adjustment_id], map: "idx_adjustment_lines_header")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model stock_adjustments {
+  id                                         String                   @id @db.Char(36)
+  organization_id                            String                   @db.Char(36)
+  branch_id                                  String?                  @db.Char(36)
+  warehouse_id                               String                   @db.Char(36)
+  adjustment_number                          String                   @db.VarChar(64)
+  reason_code                                String                   @db.VarChar(32)
+  status                                     String                   @default("DRAFT") @db.VarChar(32)
+  adjusted_at                                DateTime?                @db.DateTime(6)
+  created_by                                 String                   @db.Char(36)
+  approved_by                                String?                  @db.Char(36)
+  idempotency_key                            String?                  @db.VarChar(128)
+  created_at                                 DateTime                 @default(now()) @db.DateTime(6)
+  updated_at                                 DateTime                 @default(now()) @db.DateTime(6)
+  stock_adjustment_lines                     stock_adjustment_lines[]
+  users_stock_adjustments_approved_byTousers users?                   @relation("stock_adjustments_approved_byTousers", fields: [approved_by], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_stock_adjustments_approved_by")
+  branches                                   branches?                @relation(fields: [branch_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_stock_adjustments_branch_id")
+  users_stock_adjustments_created_byTousers  users                    @relation("stock_adjustments_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_stock_adjustments_created_by")
+  organizations                              organizations            @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_stock_adjustments_organization_id")
+  warehouses                                 warehouses               @relation(fields: [warehouse_id], references: [id], onUpdate: NoAction, map: "fk_stock_adjustments_warehouse_id")
+
+  @@unique([organization_id, adjustment_number], map: "uq_stock_adjustments_01")
+  @@unique([organization_id, idempotency_key], map: "uq_stock_adjustments_idempotency")
+  @@index([approved_by], map: "fk_stock_adjustments_approved_by")
+  @@index([branch_id], map: "fk_stock_adjustments_branch_id")
+  @@index([created_by], map: "fk_stock_adjustments_created_by")
+  @@index([warehouse_id, status, adjusted_at], map: "idx_adjustments_wh_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model stock_count_lines {
+  id              String          @id @db.Char(36)
+  stock_count_id  String          @db.Char(36)
+  location_id     String          @db.Char(36)
+  product_id      String          @db.Char(36)
+  lot_id          String          @db.Char(36)
+  expected_qty    Decimal         @default(0.000000) @db.Decimal(20, 6)
+  counted_qty     Decimal         @default(0.000000) @db.Decimal(20, 6)
+  difference_qty  Decimal         @default(0.000000) @db.Decimal(20, 6)
+  counted_at      DateTime        @db.DateTime(6)
+  counted_by      String          @db.Char(36)
+  created_at      DateTime        @default(now()) @db.DateTime(6)
+  updated_at      DateTime        @default(now()) @db.DateTime(6)
+  users           users           @relation(fields: [counted_by], references: [id], onUpdate: NoAction, map: "fk_stock_count_lines_counted_by")
+  stock_locations stock_locations @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "fk_stock_count_lines_location_id")
+  inventory_lots  inventory_lots  @relation(fields: [lot_id], references: [id], onUpdate: NoAction, map: "fk_stock_count_lines_lot_id")
+  products        products        @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_stock_count_lines_product_id")
+  stock_counts    stock_counts    @relation(fields: [stock_count_id], references: [id], onUpdate: NoAction, map: "fk_stock_count_lines_stock_count_id")
+
+  @@unique([stock_count_id, location_id, product_id, lot_id], map: "uq_stock_count_lines_01")
+  @@index([counted_by], map: "fk_stock_count_lines_counted_by")
+  @@index([location_id], map: "fk_stock_count_lines_location_id")
+  @@index([lot_id], map: "fk_stock_count_lines_lot_id")
+  @@index([stock_count_id], map: "idx_count_lines_count")
+  @@index([product_id, lot_id], map: "idx_count_lines_product")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model stock_counts {
+  id                                    String               @id @db.Char(36)
+  organization_id                       String               @db.Char(36)
+  branch_id                             String               @db.Char(36)
+  warehouse_id                          String               @db.Char(36)
+  count_number                          String               @db.VarChar(64)
+  status                                String               @default("DRAFT") @db.VarChar(32)
+  started_at                            DateTime?            @db.DateTime(6)
+  completed_at                          DateTime?            @db.DateTime(6)
+  snapshot_sequence                     BigInt?              @db.UnsignedBigInt
+  created_by                            String               @db.Char(36)
+  approved_by                           String?              @db.Char(36)
+  created_at                            DateTime             @default(now()) @db.DateTime(6)
+  updated_at                            DateTime             @default(now()) @db.DateTime(6)
+  stock_count_lines                     stock_count_lines[]
+  users_stock_counts_approved_byTousers users?               @relation("stock_counts_approved_byTousers", fields: [approved_by], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_stock_counts_approved_by")
+  branches                              branches             @relation(fields: [branch_id], references: [id], onUpdate: NoAction, map: "fk_stock_counts_branch_id")
+  users_stock_counts_created_byTousers  users                @relation("stock_counts_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_stock_counts_created_by")
+  organizations                         organizations        @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_stock_counts_organization_id")
+  inventory_movements                   inventory_movements? @relation(fields: [snapshot_sequence], references: [ledger_seq], onDelete: Restrict, onUpdate: NoAction, map: "fk_stock_counts_snapshot_sequence")
+  warehouses                            warehouses           @relation(fields: [warehouse_id], references: [id], onUpdate: NoAction, map: "fk_stock_counts_warehouse_id")
+
+  @@unique([organization_id, count_number], map: "uq_stock_counts_01")
+  @@index([approved_by], map: "fk_stock_counts_approved_by")
+  @@index([branch_id], map: "fk_stock_counts_branch_id")
+  @@index([created_by], map: "fk_stock_counts_created_by")
+  @@index([snapshot_sequence], map: "fk_stock_counts_snapshot_sequence")
+  @@index([warehouse_id, status, started_at], map: "idx_counts_wh_status")
+}
+
+model stock_locations {
+  id                     String                   @id @db.Char(36)
+  warehouse_id           String                   @db.Char(36)
+  code                   String                   @db.VarChar(64)
+  name                   String                   @db.VarChar(255)
+  location_type          String                   @default("STORAGE") @db.VarChar(32)
+  status                 String                   @default("ACTIVE") @db.VarChar(32)
+  created_at             DateTime                 @default(now()) @db.DateTime(6)
+  updated_at             DateTime                 @default(now()) @db.DateTime(6)
+  inventory_balances     inventory_balances[]
+  inventory_movements    inventory_movements[]
+  inventory_reservations inventory_reservations[]
+  sale_line_allocations  sale_line_allocations[]
+  stock_adjustment_lines stock_adjustment_lines[]
+  stock_count_lines      stock_count_lines[]
+  warehouses             warehouses               @relation(fields: [warehouse_id], references: [id], onUpdate: NoAction, map: "fk_stock_locations_warehouse_id")
+
+  @@unique([warehouse_id, code], map: "uq_stock_locations_01")
+  @@index([warehouse_id, status], map: "idx_stock_locations_wh_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model stock_transfer_lines {
+  id              String          @id @db.Char(36)
+  transfer_id     String          @db.Char(36)
+  product_id      String          @db.Char(36)
+  lot_id          String          @db.Char(36)
+  requested_qty   Decimal         @default(0.000000) @db.Decimal(20, 6)
+  shipped_qty     Decimal         @default(0.000000) @db.Decimal(20, 6)
+  received_qty    Decimal         @default(0.000000) @db.Decimal(20, 6)
+  created_at      DateTime        @default(now()) @db.DateTime(6)
+  updated_at      DateTime        @default(now()) @db.DateTime(6)
+  inventory_lots  inventory_lots  @relation(fields: [lot_id], references: [id], onUpdate: NoAction, map: "fk_stock_transfer_lines_lot_id")
+  products        products        @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_stock_transfer_lines_product_id")
+  stock_transfers stock_transfers @relation(fields: [transfer_id], references: [id], onUpdate: NoAction, map: "fk_stock_transfer_lines_transfer_id")
+
+  @@index([lot_id], map: "fk_stock_transfer_lines_lot_id")
+  @@index([product_id, lot_id], map: "idx_transfer_lines_product_lot")
+  @@index([transfer_id], map: "idx_transfer_lines_transfer")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model stock_transfers {
+  id                                                       String                 @id @db.Char(36)
+  organization_id                                          String                 @db.Char(36)
+  transfer_number                                          String                 @db.VarChar(64)
+  from_branch_id                                           String?                @db.Char(36)
+  from_warehouse_id                                        String                 @db.Char(36)
+  to_branch_id                                             String?                @db.Char(36)
+  to_warehouse_id                                          String                 @db.Char(36)
+  status                                                   String                 @default("DRAFT") @db.VarChar(32)
+  shipped_at                                               DateTime?              @db.DateTime(6)
+  received_at                                              DateTime?              @db.DateTime(6)
+  created_by                                               String                 @db.Char(36)
+  approved_by                                              String?                @db.Char(36)
+  received_by                                              String?                @db.Char(36)
+  created_at                                               DateTime               @default(now()) @db.DateTime(6)
+  updated_at                                               DateTime               @default(now()) @db.DateTime(6)
+  stock_transfer_lines                                     stock_transfer_lines[]
+  users_stock_transfers_approved_byTousers                 users?                 @relation("stock_transfers_approved_byTousers", fields: [approved_by], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_stock_transfers_approved_by")
+  users_stock_transfers_created_byTousers                  users                  @relation("stock_transfers_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_stock_transfers_created_by")
+  branches_stock_transfers_from_branch_idTobranches        branches?              @relation("stock_transfers_from_branch_idTobranches", fields: [from_branch_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_stock_transfers_from_branch_id")
+  warehouses_stock_transfers_from_warehouse_idTowarehouses warehouses             @relation("stock_transfers_from_warehouse_idTowarehouses", fields: [from_warehouse_id], references: [id], onUpdate: NoAction, map: "fk_stock_transfers_from_warehouse_id")
+  organizations                                            organizations          @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_stock_transfers_organization_id")
+  users_stock_transfers_received_byTousers                 users?                 @relation("stock_transfers_received_byTousers", fields: [received_by], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_stock_transfers_received_by")
+  branches_stock_transfers_to_branch_idTobranches          branches?              @relation("stock_transfers_to_branch_idTobranches", fields: [to_branch_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_stock_transfers_to_branch_id")
+  warehouses_stock_transfers_to_warehouse_idTowarehouses   warehouses             @relation("stock_transfers_to_warehouse_idTowarehouses", fields: [to_warehouse_id], references: [id], onUpdate: NoAction, map: "fk_stock_transfers_to_warehouse_id")
+
+  @@unique([organization_id, transfer_number], map: "uq_stock_transfers_01")
+  @@index([approved_by], map: "fk_stock_transfers_approved_by")
+  @@index([created_by], map: "fk_stock_transfers_created_by")
+  @@index([from_branch_id], map: "fk_stock_transfers_from_branch_id")
+  @@index([received_by], map: "fk_stock_transfers_received_by")
+  @@index([to_branch_id], map: "fk_stock_transfers_to_branch_id")
+  @@index([to_warehouse_id, status, received_at], map: "idx_transfer_dest")
+  @@index([from_warehouse_id, status, shipped_at], map: "idx_transfer_source")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model supplier_return_lines {
+  id                 String           @id @db.Char(36)
+  supplier_return_id String           @db.Char(36)
+  product_id         String           @db.Char(36)
+  lot_id             String           @db.Char(36)
+  quantity           Decimal          @db.Decimal(20, 6)
+  base_quantity      Decimal          @db.Decimal(20, 6)
+  unit_cost          Decimal?         @db.Decimal(19, 4)
+  created_at         DateTime         @default(now()) @db.DateTime(6)
+  updated_at         DateTime         @default(now()) @db.DateTime(6)
+  inventory_lots     inventory_lots   @relation(fields: [lot_id], references: [id], onUpdate: NoAction, map: "fk_supplier_return_lines_lot_id")
+  products           products         @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_supplier_return_lines_product_id")
+  supplier_returns   supplier_returns @relation(fields: [supplier_return_id], references: [id], onUpdate: NoAction, map: "fk_supplier_return_lines_supplier_return_id")
+
+  @@index([lot_id], map: "fk_supplier_return_lines_lot_id")
+  @@index([supplier_return_id], map: "idx_supplier_return_lines_header")
+  @@index([product_id, lot_id], map: "idx_supplier_return_lines_product")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model supplier_returns {
+  id                    String                  @id @db.Char(36)
+  organization_id       String                  @db.Char(36)
+  branch_id             String?                 @db.Char(36)
+  warehouse_id          String                  @db.Char(36)
+  supplier_id           String                  @db.Char(36)
+  return_number         String                  @db.VarChar(64)
+  status                String                  @default("DRAFT") @db.VarChar(32)
+  returned_at           DateTime?               @db.DateTime(6)
+  created_by            String                  @db.Char(36)
+  created_at            DateTime                @default(now()) @db.DateTime(6)
+  updated_at            DateTime                @default(now()) @db.DateTime(6)
+  supplier_return_lines supplier_return_lines[]
+  branches              branches?               @relation(fields: [branch_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_supplier_returns_branch_id")
+  users                 users                   @relation(fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_supplier_returns_created_by")
+  organizations         organizations           @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_supplier_returns_organization_id")
+  suppliers             suppliers               @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "fk_supplier_returns_supplier_id")
+  warehouses            warehouses              @relation(fields: [warehouse_id], references: [id], onUpdate: NoAction, map: "fk_supplier_returns_warehouse_id")
+
+  @@unique([organization_id, return_number], map: "uq_supplier_returns_01")
+  @@index([branch_id], map: "fk_supplier_returns_branch_id")
+  @@index([created_by], map: "fk_supplier_returns_created_by")
+  @@index([supplier_id, returned_at], map: "idx_supplier_returns_supplier")
+  @@index([warehouse_id, status], map: "idx_supplier_returns_wh")
+}
+
+model suppliers {
+  id               String             @id @db.Char(36)
+  organization_id  String             @db.Char(36)
+  code             String             @db.VarChar(64)
+  name             String             @db.VarChar(255)
+  phone            String?            @db.VarChar(32)
+  status           String             @default("ACTIVE") @db.VarChar(32)
+  created_at       DateTime           @default(now()) @db.DateTime(6)
+  updated_at       DateTime           @default(now()) @db.DateTime(6)
+  goods_receipts   goods_receipts[]
+  purchase_orders  purchase_orders[]
+  supplier_returns supplier_returns[]
+  organizations    organizations      @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_suppliers_organization_id")
+
+  @@unique([organization_id, code], map: "uq_suppliers_01")
+  @@index([organization_id, name], map: "idx_suppliers_org_name")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model typeorm_metadata {
+  type     String  @db.VarChar(255)
+  database String? @db.VarChar(255)
+  schema   String? @db.VarChar(255)
+  table    String? @db.VarChar(255)
+  name     String? @db.VarChar(255)
+  value    String? @db.Text
+
+  @@ignore
+}
+
+model units {
+  id            String          @id @db.Char(36)
+  code          String          @unique(map: "uq_units_01") @db.VarChar(32)
+  name          String          @db.VarChar(128)
+  created_at    DateTime        @default(now()) @db.DateTime(6)
+  updated_at    DateTime        @default(now()) @db.DateTime(6)
+  product_units product_units[]
+  products      products[]
+}
+
+model user_branch_access {
+  id        String   @id @db.Char(36)
+  user_id   String   @db.Char(36)
+  branch_id String   @db.Char(36)
+  branches  branches @relation(fields: [branch_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_branch_access_branch_id")
+  users     users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_branch_access_user_id")
+
+  @@unique([user_id, branch_id], map: "uq_user_branch_access_01")
+  @@index([branch_id], map: "fk_user_branch_access_branch_id")
+}
+
+model user_roles {
+  id      String @id @db.Char(36)
+  user_id String @db.Char(36)
+  role_id String @db.Char(36)
+  roles   roles  @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_roles_role_id")
+  users   users  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_roles_user_id")
+
+  @@unique([user_id, role_id], map: "uq_user_roles_01")
+  @@index([role_id, user_id], map: "idx_user_roles_role")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model users {
+  id                                                     String                @id @db.Char(36)
+  organization_id                                        String                @db.Char(36)
+  username                                               String                @db.VarChar(128)
+  full_name                                              String                @db.VarChar(255)
+  status                                                 String                @default("ACTIVE") @db.VarChar(32)
+  created_at                                             DateTime              @default(now()) @db.DateTime(6)
+  updated_at                                             DateTime              @default(now()) @db.DateTime(6)
+  admin_credentials                                      admin_credentials?
+  audit_logs                                             audit_logs[]
+  goods_receipts                                         goods_receipts[]
+  inventory_movements                                    inventory_movements[]
+  order_events                                           order_events[]
+  order_prescriptions                                    order_prescriptions[]
+  orders                                                 orders[]
+  pos_shifts                                             pos_shifts[]
+  purchase_orders                                        purchase_orders[]
+  sales                                                  sales[]
+  sales_returns                                          sales_returns[]
+  stock_adjustments_stock_adjustments_approved_byTousers stock_adjustments[]   @relation("stock_adjustments_approved_byTousers")
+  stock_adjustments_stock_adjustments_created_byTousers  stock_adjustments[]   @relation("stock_adjustments_created_byTousers")
+  stock_count_lines                                      stock_count_lines[]
+  stock_counts_stock_counts_approved_byTousers           stock_counts[]        @relation("stock_counts_approved_byTousers")
+  stock_counts_stock_counts_created_byTousers            stock_counts[]        @relation("stock_counts_created_byTousers")
+  stock_transfers_stock_transfers_approved_byTousers     stock_transfers[]     @relation("stock_transfers_approved_byTousers")
+  stock_transfers_stock_transfers_created_byTousers      stock_transfers[]     @relation("stock_transfers_created_byTousers")
+  stock_transfers_stock_transfers_received_byTousers     stock_transfers[]     @relation("stock_transfers_received_byTousers")
+  supplier_returns                                       supplier_returns[]
+  user_branch_access                                     user_branch_access[]
+  user_roles                                             user_roles[]
+  organizations                                          organizations         @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_users_organization_id")
+
+  @@unique([organization_id, username], map: "uq_users_01")
+  @@unique([organization_id, id], map: "uq_users_org_id")
+  @@index([organization_id, status], map: "idx_users_org_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model warehouses {
+  id                                                            String                   @id @db.Char(36)
+  organization_id                                               String                   @db.Char(36)
+  branch_id                                                     String?                  @db.Char(36)
+  code                                                          String                   @db.VarChar(64)
+  name                                                          String                   @db.VarChar(255)
+  warehouse_type                                                String                   @default("SALE") @db.VarChar(32)
+  allow_sale                                                    Boolean                  @default(false)
+  allow_negative_stock                                          Boolean                  @default(false)
+  status                                                        String                   @default("ACTIVE") @db.VarChar(32)
+  created_at                                                    DateTime                 @default(now()) @db.DateTime(6)
+  updated_at                                                    DateTime                 @default(now()) @db.DateTime(6)
+  goods_receipts                                                goods_receipts[]
+  inventory_balances                                            inventory_balances[]
+  inventory_movements                                           inventory_movements[]
+  inventory_reservations                                        inventory_reservations[]
+  orders                                                        orders[]
+  sale_line_allocations                                         sale_line_allocations[]
+  sales                                                         sales[]
+  sales_returns                                                 sales_returns[]
+  stock_adjustments                                             stock_adjustments[]
+  stock_counts                                                  stock_counts[]
+  stock_locations                                               stock_locations[]
+  stock_transfers_stock_transfers_from_warehouse_idTowarehouses stock_transfers[]        @relation("stock_transfers_from_warehouse_idTowarehouses")
+  stock_transfers_stock_transfers_to_warehouse_idTowarehouses   stock_transfers[]        @relation("stock_transfers_to_warehouse_idTowarehouses")
+  supplier_returns                                              supplier_returns[]
+  branches                                                      branches?                @relation(fields: [branch_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_warehouses_branch_id")
+  organizations                                                 organizations            @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "fk_warehouses_organization_id")
+
+  @@unique([organization_id, code], map: "uq_warehouses_01")
+  @@unique([organization_id, id], map: "uq_warehouses_org_id")
+  @@index([branch_id, status], map: "idx_warehouses_branch")
+  @@index([organization_id, warehouse_type], map: "idx_warehouses_org_type")
+}

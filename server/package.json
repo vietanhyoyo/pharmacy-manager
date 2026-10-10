@@ -3,20 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "npm run build:gateway && npm run build:kafka && npm run build:inventory && npm run build:auth",
+    "build": "npm run build:gateway && npm run build:kafka && npm run build:inventory && npm run build:storefront && npm run build:auth",
     "build:gateway": "node --check services/gateway/src/server.js",
     "build:kafka": "node --check services/kafka/src/server.js",
     "build:inventory": "npm --prefix services/inventory run build",
+    "build:storefront": "npm --prefix services/storefront run build",
     "build:auth": "mvn -q -f services/auth/pom.xml -DskipTests package",
     "typecheck:inventory": "npm --prefix services/inventory run typecheck",
+    "typecheck:storefront": "npm --prefix services/storefront run typecheck",
     "start:gateway": "npm --prefix services/gateway start",
     "start:kafka": "npm --prefix services/kafka start",
     "start:inventory": "npm --prefix services/inventory start",
+    "start:storefront": "npm --prefix services/storefront start",
     "start:auth": "java -jar services/auth/target/auth-service-1.0.0.jar",
     "db:migrate": "npm --prefix services/inventory run db:migrate",
     "dev:gateway": "npm --prefix services/gateway run dev",
     "dev:kafka": "npm --prefix services/kafka run dev",
     "dev:inventory": "npm --prefix services/inventory run dev",
+    "dev:storefront": "npm --prefix services/storefront run dev",
     "dev:auth": "mvn -f services/auth/pom.xml spring-boot:run"
   }
 }

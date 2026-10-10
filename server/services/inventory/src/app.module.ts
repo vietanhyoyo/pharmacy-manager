@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from './database/prisma.service';
 import { DashboardController } from './controllers/dashboard.controller';
+import { HealthController } from './controllers/health.controller';
 import { InventoryAuthGuard } from './guards/app-auth.guard';
 import { IssuesController } from './controllers/issues.controller';
 import { LookupsController } from './controllers/lookups.controller';
@@ -32,7 +33,7 @@ import { SuppliersService } from './services/suppliers.service';
 import { InventoryService } from './services/app.service';
 
 @Module({
-  controllers: [DashboardController, LookupsController, ProductsController, SuppliersController, LotsController, StockController, ReceiptsController, IssuesController, MovementsController],
+  controllers: [HealthController, DashboardController, LookupsController, ProductsController, SuppliersController, LotsController, StockController, ReceiptsController, IssuesController, MovementsController],
   providers: [
     DashboardRepository, IssuesRepository, InventoryRepository, LookupsRepository, LotsRepository,
     MovementsRepository, ProductsRepository, ReceiptsRepository, StockRepository, SuppliersRepository,

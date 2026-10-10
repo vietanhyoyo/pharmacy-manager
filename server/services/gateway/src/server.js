@@ -5,6 +5,7 @@ import express from 'express';
 const port = Number(process.env.PORT ?? 3000);
 const authServiceUrl = process.env.AUTH_SERVICE_URL ?? 'http://localhost:8081';
 const inventoryServiceUrl = process.env.INVENTORY_SERVICE_URL ?? 'http://localhost:3002';
+const storefrontServiceUrl = process.env.STOREFRONT_SERVICE_URL ?? 'http://localhost:3003';
 
 const app = express();
 app.disable('x-powered-by');
@@ -49,6 +50,7 @@ function proxyTo(serviceUrl) {
 app.get('/api/health', (_request, response) => response.json({ status: 'ok', service: 'gateway' }));
 app.use('/api/v1/auth', proxyTo(authServiceUrl));
 app.use('/api/v1/inventory', proxyTo(inventoryServiceUrl));
+app.use('/api/v1/storefront', proxyTo(storefrontServiceUrl));
 app.use((_request, response) => response.status(404).json({ message: 'Đường dẫn không hợp lệ' }));
 
 const server = app.listen(port, '0.0.0.0', () => console.log(`Gateway listening on ${port}`));

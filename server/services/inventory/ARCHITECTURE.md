@@ -66,7 +66,7 @@ All endpoints below require `Authorization: Bearer <token>`.
 | `GET`, `POST` | `/api/v1/inventory/issues` | List and create stock issues. |
 | `GET` | `/api/v1/inventory/movements` | Read inventory movements. |
 
-There is currently no dedicated health controller in this service. Do not assume a `/health` endpoint exists.
+The public `GET /api/v1/inventory/health` endpoint is used by the container healthcheck and does not require authentication.
 
 ### Product list query
 
